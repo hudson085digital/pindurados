@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+
+# Builds
+dist/
+build/
+
+# Variáveis de ambiente (segredos)
+.env
+
+# Dados locais e uploads
+dados/
+api/uploads/
+
+# Logs e sistema
+*.log
+.DS_Store

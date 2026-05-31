@@ -1,0 +1,105 @@
+// Schema do Pindurados.
+// Valores em dinheiro são guardados em CENTAVOS (Int) para evitar erros de
+// arredondamento. Percentuais (juros) são Float.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(ADMIN)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  customers Customer[]
+
+  @@map("users")
+}
+
+// Devedor (quem deve)
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sales Sale[]
+
+  @@map("customers")
+}
+
+enum SaleType {
+  AUTOMATIC
+  MANUAL
+  BY_TOTAL
+}
+
+// Venda / promissória
+model Sale {
+  id                  String   @id @default(uuid())
+  description         String?
+  type                SaleType @default(AUTOMATIC)
+  productValueInCents Int      @map("product_value_in_cents")
+  downPaymentInCents  Int      @default(0) @map("down_payment_in_cents")
+  interestPercent     Float    @map("interest_percent")
+  lateFeePercent      Float    @default(25) @map("late_fee_percent")
+  totalInCents        Int      @map("total_in_cents")
+  saleDate            DateTime @map("sale_date")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  customerId String   @map("customer_id")
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  installments Installment[]
+
+  @@map("sales")
+}
+
+// Parcela
+model Installment {
+  id                  String   @id @default(uuid())
+  number              Int
+  amountInCents       Int      @map("amount_in_cents")
+  dueDate             DateTime @map("due_date")
+  isLate              Boolean  @default(false) @map("is_late")
+  lateInterestInCents Int      @default(0) @map("late_interest_in_cents")
+  lateFeePercent      Float?   @map("late_fee_percent")
+  lateReason          String?  @map("late_reason")
+
+  saleId String @map("sale_id")
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  payments Payment[]
+
+  @@map("installments")
+}
+
+// Pagamento (pode ser parcial — vários por parcela)
+model Payment {
+  id            String   @id @default(uuid())
+  amountInCents Int      @map("amount_in_cents")
+  paidAt        DateTime @map("paid_at")
+  receiptPath   String?  @map("receipt_path")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  installmentId String      @map("installment_id")
+  installment   Installment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}

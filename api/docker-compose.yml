@@ -1,0 +1,15 @@
+services:
+  pindurados-pg:
+    image: postgres:15
+    container_name: pindurados-pg
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: docker
+      POSTGRES_DB: pindurados
+    volumes:
+      - pindurados-pg-data:/var/lib/postgresql/data
+
+volumes:
+  pindurados-pg-data:
