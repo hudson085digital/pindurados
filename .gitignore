@@ -15,3 +15,13 @@ api/uploads/
 # Logs e sistema
 *.log
 .DS_Store
+
+# --- Pindurados (regras do projeto) ---
+node_modules/
+dist/
+build/
+.env
+dados/
+api/uploads/
+*.log
+.DS_Store
