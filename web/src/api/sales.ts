@@ -33,10 +33,22 @@ export interface CreateSaleBody extends CalculateBody {
   description?: string | null
   lateFeePercent?: number
   saleDate?: string
+  firstDueDate?: string
 }
 
 export async function createSale(body: CreateSaleBody) {
   const response = await api.post<{ sale: Sale }>('/sales', body)
+  return response.data.sale
+}
+
+export interface UpdateSaleBody {
+  description?: string | null
+  productCostInCents?: number
+  saleDate?: string
+}
+
+export async function updateSale(id: string, body: UpdateSaleBody) {
+  const response = await api.put<{ sale: Sale }>(`/sales/${id}`, body)
   return response.data.sale
 }
 

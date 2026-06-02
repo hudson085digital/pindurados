@@ -17,3 +17,7 @@ export async function markInstallmentLate({
 export async function unmarkInstallmentLate(installmentId: string) {
   await api.delete(`/installments/${installmentId}/late`)
 }
+
+export async function updateInstallmentDueDate(installmentId: string, dueDate: string) {
+  await api.patch(`/installments/${installmentId}/due-date`, { dueDate })
+}

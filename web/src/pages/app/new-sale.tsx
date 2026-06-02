@@ -11,6 +11,7 @@ import { queryClient } from '@/lib/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { Label } from '@/components/ui/label'
 
 const MODES: { value: SaleType; label: string; hint: string }[] = [
@@ -50,12 +51,17 @@ export function NewSale() {
   const [installments, setInstallments] = useState('3')
   const [finalValue, setFinalValue] = useState('')
   const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [firstDueDate, setFirstDueDate] = useState('')
 
   const [preview, setPreview] = useState<CalculationResult | null>(null)
 
   // edição manual das parcelas (valores em reais como string)
   const [editingCustom, setEditingCustom] = useState(false)
-  const [customValues, setCustomValues] = useState<string[]>([])
+  // Valores de cada parcela (centavos), quais foram fixadas manualmente e o total
+  // a distribuir. Editar uma parcela redistribui o restante entre as não-fixadas.
+  const [customCents, setCustomCents] = useState<number[]>([])
+  const [pinned, setPinned] = useState<boolean[]>([])
+  const [targetCents, setTargetCents] = useState(0)
 
   // pré-seleciona devedor se veio por ?customerId=
   useEffect(() => {
@@ -77,7 +83,7 @@ export function NewSale() {
     if (editingCustom) {
       return {
         ...base,
-        customInstallmentValuesInCents: customValues.map((v) => reaisToCents(v)),
+        customInstallmentValuesInCents: customCents,
       }
     }
     if (type === 'BY_TOTAL') {
@@ -109,35 +115,90 @@ export function NewSale() {
     }, 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line
-  }, [type, productValue, downPayment, interest, installments, finalValue, editingCustom, customValues])
+  }, [type, productValue, downPayment, interest, installments, finalValue, editingCustom, customCents])
+
+  // Distribui (target − fixadas) igualmente entre as parcelas NÃO fixadas, jogando
+  // os centavos quebrados na última. Mantém as fixadas como estão.
+  function redistribute(cents: number[], pins: boolean[], target: number): number[] {
+    const autoIdx = cents.map((_, i) => i).filter((i) => !pins[i])
+    if (autoIdx.length === 0) return cents
+    const pinnedSum = cents.reduce((s, c, i) => s + (pins[i] ? c : 0), 0)
+    const remaining = Math.max(0, target - pinnedSum)
+    const base = Math.floor(remaining / autoIdx.length)
+    const result = [...cents]
+    autoIdx.forEach((idx, k) => {
+      result[idx] = k === autoIdx.length - 1 ? remaining - base * (autoIdx.length - 1) : base
+    })
+    return result
+  }
 
   // liga a edição manual semeando os valores da prévia atual
   async function enableCustom() {
-    const cents = reaisToCents(productValue)
-    if (!cents) return toast.error('Informe o valor do produto primeiro.')
+    const product = reaisToCents(productValue)
+    if (!product) return toast.error('Informe o valor do produto primeiro.')
     let seed = preview
     if (!seed) {
       const body = buildBody()
       if (body) seed = await calculateSale(body).catch(() => null)
     }
-    const values = seed?.installmentValuesInCents ?? [cents]
-    setCustomValues(values.map((c) => (c / 100).toFixed(2)))
+    const values = seed?.installmentValuesInCents ?? [product]
+    const total = seed?.totalInCents ?? values.reduce((s, c) => s + c, 0)
+    setCustomCents(values)
+    setPinned(values.map(() => false))
+    setTargetCents(total)
     setEditingCustom(true)
   }
 
   function disableCustom() {
     setEditingCustom(false)
-    setCustomValues([])
+    setCustomCents([])
+    setPinned([])
   }
 
-  function updateCustom(index: number, value: string) {
-    setCustomValues((prev) => prev.map((v, i) => (i === index ? value : v)))
+  // Edita uma parcela: fixa o valor e redistribui o restante nas não-fixadas.
+  function updateCustom(index: number, valueCents: number) {
+    const pins = pinned.map((p, i) => (i === index ? true : p))
+    const cents = customCents.map((c, i) => (i === index ? valueCents : c))
+    setPinned(pins)
+    setCustomCents(redistribute(cents, pins, targetCents))
   }
+
   function addCustomRow() {
-    setCustomValues((prev) => [...prev, '0,00'])
+    const n = customCents.length + 1
+    setInstallments(String(n)) // sincroniza o nº de parcelas
+    const cents = [...customCents, 0]
+    const pins = [...pinned, false]
+    setPinned(pins)
+    setCustomCents(redistribute(cents, pins, targetCents))
   }
+
   function removeCustomRow(index: number) {
-    setCustomValues((prev) => prev.filter((_, i) => i !== index))
+    const cents = customCents.filter((_, i) => i !== index)
+    const pins = pinned.filter((_, i) => i !== index)
+    setInstallments(String(Math.max(1, cents.length))) // sincroniza o nº de parcelas
+    setPinned(pins)
+    setCustomCents(redistribute(cents, pins, targetCents))
+  }
+
+  // Define o nº de parcelas; em edição manual, gera/ajusta os campos de parcela
+  // de acordo com esse número e redistribui.
+  function setInstallmentCount(value: string) {
+    setInstallments(value)
+    if (!editingCustom) return
+    const n = Math.max(1, Number(value) || 1)
+    let cents = [...customCents]
+    let pins = [...pinned]
+    if (n < cents.length) {
+      cents = cents.slice(0, n)
+      pins = pins.slice(0, n)
+    } else if (n > cents.length) {
+      while (cents.length < n) {
+        cents.push(0)
+        pins.push(false)
+      }
+    }
+    setPinned(pins)
+    setCustomCents(redistribute(cents, pins, targetCents))
   }
 
   const { mutateAsync, isPending } = useMutation({
@@ -153,7 +214,13 @@ export function NewSale() {
     if (!customerId) return toast.error('Selecione um devedor.')
     if (!body) return toast.error('Informe o valor do produto.')
     try {
-      await mutateAsync({ ...body, customerId, description: description || null, saleDate })
+      await mutateAsync({
+        ...body,
+        customerId,
+        description: description || null,
+        saleDate,
+        firstDueDate: firstDueDate || undefined,
+      })
       toast.success('Venda registrada!')
       navigate(`/devedores/${customerId}`)
     } catch {
@@ -173,7 +240,7 @@ export function NewSale() {
     )
   }
 
-  const customSum = customValues.reduce((s, v) => s + reaisToCents(v), 0)
+  const customSum = customCents.reduce((s, c) => s + c, 0)
 
   return (
     <Card>
@@ -293,20 +360,33 @@ export function NewSale() {
                   type="number"
                   min={1}
                   value={installments}
-                  onChange={(e) => setInstallments(e.target.value)}
+                  onChange={(e) => setInstallmentCount(e.target.value)}
                 />
               </div>
             )}
           </div>
         )}
 
-        <div>
-          <Label>Data da venda</Label>
-          <Input
-            type="date"
-            value={saleDate}
-            onChange={(e) => setSaleDate(e.target.value)}
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Data da venda</Label>
+            <Input
+              type="date"
+              value={saleDate}
+              onChange={(e) => setSaleDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Vencimento da 1ª parcela</Label>
+            <Input
+              type="date"
+              value={firstDueDate}
+              onChange={(e) => setFirstDueDate(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              As demais caem no mesmo dia dos meses seguintes. Vazio = 1 mês após a venda.
+            </p>
+          </div>
         </div>
 
         {/* Edição manual das parcelas */}
@@ -322,14 +402,28 @@ export function NewSale() {
                 cancelar edição
               </button>
             </div>
+            <div className="mb-2">
+              <Label>Nº de parcelas</Label>
+              <Input
+                type="number"
+                min={1}
+                value={installments}
+                onChange={(e) => setInstallmentCount(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Total a distribuir: <strong>{formatCurrency(targetCents)}</strong>. Editar uma
+                parcela fixa o valor; as demais se ajustam sozinhas.
+              </p>
+            </div>
             <div className="space-y-2">
-              {customValues.map((v, i) => (
+              {customCents.map((c, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="w-14 text-sm text-muted-foreground">{i + 1}ª</span>
-                  <Input
-                    inputMode="decimal"
-                    value={v}
-                    onChange={(e) => updateCustom(i, e.target.value)}
+                  <span className="w-14 text-sm text-muted-foreground">
+                    {i + 1}ª{pinned[i] ? ' 📌' : ''}
+                  </span>
+                  <CurrencyInput
+                    valueInCents={c}
+                    onChangeCents={(cents) => updateCustom(i, cents)}
                   />
                   <Button
                     type="button"
@@ -353,7 +447,10 @@ export function NewSale() {
             </Button>
             <p className="mt-2 text-sm">
               Soma das parcelas:{' '}
-              <strong>{formatCurrency(customSum)}</strong>
+              <strong className={customSum !== targetCents ? 'text-destructive' : ''}>
+                {formatCurrency(customSum)}
+              </strong>
+              {customSum !== targetCents && ` (alvo ${formatCurrency(targetCents)})`}
             </p>
           </div>
         ) : (
