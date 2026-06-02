@@ -3,6 +3,7 @@ import { AppLayout } from './pages/_layouts/app'
 import { AuthLayout } from './pages/_layouts/auth'
 import { Protected } from './pages/_layouts/protected'
 import { SignIn } from './pages/auth/sign-in'
+import { SignUp } from './pages/auth/sign-up'
 import { Dashboard } from './pages/app/dashboard'
 import { Customers } from './pages/app/customers'
 import { CustomerDetails } from './pages/app/customer-details'
@@ -28,6 +29,9 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <AuthLayout />,
-    children: [{ path: '/sign-in', element: <SignIn /> }],
+    children: [
+      { path: '/sign-in', element: <SignIn /> },
+      { path: '/sign-up', element: <SignUp /> },
+    ],
   },
 ])

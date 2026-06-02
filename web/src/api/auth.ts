@@ -13,6 +13,16 @@ export async function signIn({ email, password }: SignInBody) {
   return response.data
 }
 
+export interface SignUpBody {
+  name: string
+  email: string
+  password: string
+}
+
+export async function signUp({ name, email, password }: SignUpBody) {
+  await api.post('/users', { name, email, password })
+}
+
 export interface Profile {
   id: string
   name: string
