@@ -21,10 +21,23 @@ export interface CreateCustomerBody {
   name: string
   phone?: string | null
   note?: string | null
+  autoReminder?: boolean
 }
 
 export async function createCustomer(body: CreateCustomerBody) {
   const response = await api.post<{ customer: Customer }>('/customers', body)
+  return response.data.customer
+}
+
+export interface UpdateCustomerBody {
+  name?: string
+  phone?: string | null
+  note?: string | null
+  autoReminder?: boolean
+}
+
+export async function updateCustomer(id: string, body: UpdateCustomerBody) {
+  const response = await api.put<{ customer: Customer }>(`/customers/${id}`, body)
   return response.data.customer
 }
 

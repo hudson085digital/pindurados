@@ -9,6 +9,7 @@ export async function updateCustomer(request: FastifyRequest, reply: FastifyRepl
     name: z.string().min(1).optional(),
     phone: z.string().optional().nullable(),
     note: z.string().optional().nullable(),
+    autoReminder: z.boolean().optional(),
   })
 
   const { id } = paramsSchema.parse(request.params)

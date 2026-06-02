@@ -7,9 +7,10 @@ export async function createCustomer(request: FastifyRequest, reply: FastifyRepl
     name: z.string().min(1, 'Informe o nome.'),
     phone: z.string().optional().nullable(),
     note: z.string().optional().nullable(),
+    autoReminder: z.boolean().optional(),
   })
 
-  const { name, phone, note } = bodySchema.parse(request.body)
+  const { name, phone, note, autoReminder } = bodySchema.parse(request.body)
 
   const createCustomer = makeCreateCustomerUseCase()
   const { customer } = await createCustomer.execute({
@@ -17,6 +18,7 @@ export async function createCustomer(request: FastifyRequest, reply: FastifyRepl
     name,
     phone,
     note,
+    autoReminder,
   })
 
   return reply.status(201).send({ customer })

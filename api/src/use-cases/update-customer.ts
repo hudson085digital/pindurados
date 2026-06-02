@@ -8,6 +8,7 @@ interface UpdateCustomerUseCaseRequest {
   name?: string
   phone?: string | null
   note?: string | null
+  autoReminder?: boolean
 }
 
 interface UpdateCustomerUseCaseResponse {
@@ -23,6 +24,7 @@ export class UpdateCustomerUseCase {
     name,
     phone,
     note,
+    autoReminder,
   }: UpdateCustomerUseCaseRequest): Promise<UpdateCustomerUseCaseResponse> {
     const customer = await this.customersRepository.findById(customerId)
     if (!customer || customer.userId !== userId) {
@@ -32,6 +34,7 @@ export class UpdateCustomerUseCase {
     if (name !== undefined) customer.name = name
     if (phone !== undefined) customer.phone = phone
     if (note !== undefined) customer.note = note
+    if (autoReminder !== undefined) customer.autoReminder = autoReminder
 
     const updated = await this.customersRepository.save(customer)
 

@@ -6,6 +6,7 @@ interface CreateCustomerUseCaseRequest {
   name: string
   phone?: string | null
   note?: string | null
+  autoReminder?: boolean
 }
 
 interface CreateCustomerUseCaseResponse {
@@ -20,12 +21,14 @@ export class CreateCustomerUseCase {
     name,
     phone,
     note,
+    autoReminder,
   }: CreateCustomerUseCaseRequest): Promise<CreateCustomerUseCaseResponse> {
     const customer = await this.customersRepository.create({
       userId,
       name,
       phone: phone ?? null,
       note: note ?? null,
+      autoReminder: autoReminder ?? false,
     })
 
     return { customer }
