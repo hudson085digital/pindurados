@@ -68,26 +68,34 @@ describe('CreateReceiptUseCase', () => {
       saleId: 'sale-1',
       amountInCents: 50000,
       method: 'CASH',
+      receiptPath: 'comprovante.jpg',
     })
 
     expect(receipt.amountInCents).toBe(50000)
     expect(receipt.createdBy).toBe(USER_ID)
+    expect(receipt.receiptPath).toBe('comprovante.jpg')
     expect(sale.receipts).toHaveLength(1)
   })
 
+  it('exige o comprovante de pagamento (spec 005)', async () => {
+    await expect(() =>
+      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 50000, method: 'PIX' }),
+    ).rejects.toThrowError('comprovante')
+  })
+
   it('limita o recebimento ao saldo (Q2): rejeita valor acima do saldo', async () => {
-    await sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 50000, method: 'PIX' })
+    await sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 50000, method: 'PIX', receiptPath: 'c.jpg' })
 
     // saldo agora é 50000; tentar 60000 deve falhar
     await expect(() =>
-      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 60000, method: 'PIX' }),
+      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 60000, method: 'PIX', receiptPath: 'c.jpg' }),
     ).rejects.toBeInstanceOf(BusinessRuleError)
   })
 
   it('aceita receber exatamente o saldo e quita', async () => {
-    await sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 100000, method: 'PIX' })
+    await sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 100000, method: 'PIX', receiptPath: 'c.jpg' })
     await expect(() =>
-      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 1, method: 'PIX' }),
+      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 1, method: 'PIX', receiptPath: 'c.jpg' }),
     ).rejects.toThrowError('já está quitado')
   })
 

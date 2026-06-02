@@ -1,32 +1,62 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
+import { randomUUID } from 'node:crypto'
+import { createWriteStream } from 'node:fs'
+import { extname, join } from 'node:path'
+import { pipeline } from 'node:stream/promises'
 import { makeCreateReceiptUseCase } from '@/use-cases/factories/make-create-receipt-use-case'
 import { ResourceNotFoundError } from '@/use-cases/errors/resource-not-found-error'
 import { BusinessRuleError } from '@/use-cases/errors/business-rule-error'
+import { UPLOADS_DIR } from '@/lib/uploads'
 
-// Registra um recebimento no nível da venda (crediário). Alocação nas parcelas é
-// derivada no back. Body JSON: amountInCents, method (PIX|CASH), receivedAt?, note?
+// Registra um recebimento (crediário). Multipart/form-data: arquivo "comprovante"
+// (OBRIGATÓRIO) + campos amountInCents, method (PIX|CASH), receivedAt?, note?.
 export async function createReceipt(request: FastifyRequest, reply: FastifyReply) {
   const paramsSchema = z.object({ saleId: z.string().uuid() })
   const { saleId } = paramsSchema.parse(request.params)
 
+  let amountInCents: number | undefined
+  let method: string | undefined
+  let receivedAt: Date | undefined
+  let note: string | undefined
+  let receiptPath: string | null = null
+
+  for await (const part of request.parts()) {
+    if (part.type === 'file' && part.fieldname === 'comprovante') {
+      if (part.filename) {
+        const filename = `${randomUUID()}${extname(part.filename)}`
+        await pipeline(part.file, createWriteStream(join(UPLOADS_DIR, filename)))
+        receiptPath = filename
+      } else {
+        part.file.resume()
+      }
+    } else if (part.type === 'field') {
+      if (part.fieldname === 'amountInCents') amountInCents = Number(part.value)
+      if (part.fieldname === 'method') method = String(part.value)
+      if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
+      if (part.fieldname === 'note' && part.value) note = String(part.value)
+    }
+  }
+
   const bodySchema = z.object({
-    amountInCents: z.coerce.number().int().positive(),
+    amountInCents: z.number().int().positive(),
     method: z.enum(['PIX', 'CASH']),
-    receivedAt: z.coerce.date().optional(),
-    note: z.string().trim().max(500).optional(),
   })
-  const { amountInCents, method, receivedAt, note } = bodySchema.parse(request.body)
+  const parsed = bodySchema.safeParse({ amountInCents, method })
+  if (!parsed.success) {
+    return reply.status(400).send({ message: 'Dados inválidos.', issues: parsed.error.format() })
+  }
 
   try {
     const createReceipt = makeCreateReceiptUseCase()
     const { receipt } = await createReceipt.execute({
       userId: request.user.sub,
       saleId,
-      amountInCents,
-      method,
+      amountInCents: parsed.data.amountInCents,
+      method: parsed.data.method,
       receivedAt,
       note: note ?? null,
+      receiptPath,
     })
     return reply.status(201).send({ receipt })
   } catch (error) {

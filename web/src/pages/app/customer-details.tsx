@@ -2,11 +2,15 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ChevronLeft, Undo2, Send, Bell } from 'lucide-react'
+import { ChevronLeft, Undo2, Send, Bell, Pencil } from 'lucide-react'
 import { getCustomerDetails, deleteCustomer, updateCustomer } from '@/api/customers'
-import { deleteSale, getChargeMessage } from '@/api/sales'
+import { deleteSale, getChargeMessage, updateSale } from '@/api/sales'
 import { createReceipt, voidReceipt } from '@/api/receipts'
-import { markInstallmentLate, unmarkInstallmentLate } from '@/api/installments'
+import {
+  markInstallmentLate,
+  unmarkInstallmentLate,
+  updateInstallmentDueDate,
+} from '@/api/installments'
 import { Installment, Receipt, ReceiptMethod, Sale } from '@/api/types'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { queryClient } from '@/lib/react-query'
@@ -141,9 +145,29 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
     mutationFn: () => getChargeMessage(sale.id),
   })
 
+  const [editOpen, setEditOpen] = useState(false)
+  const [editDesc, setEditDesc] = useState(sale.description ?? '')
+  const [editCost, setEditCost] = useState(sale.productCostInCents)
+  const [editDate, setEditDate] = useState(sale.saleDate.slice(0, 10))
+  const { mutateAsync: saveSale, isPending: saving } = useMutation({
+    mutationFn: () =>
+      updateSale(sale.id, {
+        description: editDesc || null,
+        productCostInCents: editCost,
+        saleDate: editDate,
+      }),
+  })
+
   async function handleDelete() {
     if (!confirm('Excluir esta venda?')) return
     await removeSale(sale.id)
+    onChange()
+  }
+
+  async function handleSaveSale() {
+    await saveSale()
+    toast.success('Venda atualizada.')
+    setEditOpen(false)
     onChange()
   }
 
@@ -197,11 +221,47 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
           </p>
         )}
 
-        {!sale.settled && (
-          <Button size="sm" variant="outline" onClick={handleCharge} disabled={charging}>
-            <Send className="mr-1 h-4 w-4" /> Cobrar
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {!sale.settled && (
+            <Button size="sm" variant="outline" onClick={handleCharge} disabled={charging}>
+              <Send className="mr-1 h-4 w-4" /> Cobrar
+            </Button>
+          )}
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEditDesc(sale.description ?? '')
+                setEditCost(sale.productCostInCents)
+                setEditDate(sale.saleDate.slice(0, 10))
+                setEditOpen(true)
+              }}
+            >
+              <Pencil className="mr-1 h-4 w-4" /> Editar
+            </Button>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar venda</DialogTitle>
+              </DialogHeader>
+              <div>
+                <Label>Descrição</Label>
+                <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+              </div>
+              <div>
+                <Label>Custo do produto (R$)</Label>
+                <CurrencyInput valueInCents={editCost} onChangeCents={setEditCost} />
+              </div>
+              <div>
+                <Label>Data da venda</Label>
+                <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+              </div>
+              <Button className="w-full" onClick={handleSaveSale} disabled={saving}>
+                Salvar alterações
+              </Button>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <div className="space-y-2">
           {sale.installments.map((inst) => (
@@ -225,6 +285,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   const [method, setMethod] = useState<ReceiptMethod>('PIX')
   const [receivedAt, setReceivedAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
+  const [file, setFile] = useState<File | null>(null)
 
   const { mutateAsync: create, isPending } = useMutation({ mutationFn: createReceipt })
   const { mutateAsync: revert } = useMutation({ mutationFn: voidReceipt })
@@ -236,17 +297,19 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
 
   async function handleCreate() {
     if (!amountCents) return toast.error('Informe um valor.')
+    if (!file) return toast.error('Anexe o comprovante de pagamento.')
     if (amountCents > sale.balanceInCents) {
       return toast.error(
         `Valor acima do saldo. Receba no máximo ${formatCurrency(sale.balanceInCents)}.`,
       )
     }
     try {
-      await create({ saleId: sale.id, amountInCents: amountCents, method, receivedAt, note })
+      await create({ saleId: sale.id, amountInCents: amountCents, method, comprovante: file, receivedAt, note })
       toast.success('Recebimento registrado!')
       setOpen(false)
       setAmountCents(0)
       setNote('')
+      setFile(null)
       onChange()
     } catch {
       toast.error('Erro ao registrar recebimento.')
@@ -317,6 +380,14 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 />
               </div>
               <div>
+                <Label>Comprovante (foto/PDF) *</Label>
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+              </div>
+              <div>
                 <Label>Observação</Label>
                 <Textarea
                   rows={2}
@@ -347,6 +418,19 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                   <strong>{formatCurrency(Math.abs(r.amountInCents))}</strong> ·{' '}
                   {METHOD_LABEL[r.method]} · {formatDate(r.receivedAt)}
                   {r.note && !isReversal && ` · ${r.note}`}
+                  {r.receiptPath && (
+                    <>
+                      {' · '}
+                      <a
+                        className="text-primary"
+                        href={`${import.meta.env.VITE_API_URL}/comprovantes/${r.receiptPath}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        comprovante
+                      </a>
+                    </>
+                  )}
                 </span>
                 {!isReversal && !alreadyReversed && (
                   <button
@@ -369,9 +453,21 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
   const [lateOpen, setLateOpen] = useState(false)
   const [lateFee, setLateFee] = useState('25')
   const [reason, setReason] = useState('')
+  const [editingDue, setEditingDue] = useState(false)
+  const [dueValue, setDueValue] = useState(() => inst.dueDate.slice(0, 10))
 
   const { mutateAsync: markLate } = useMutation({ mutationFn: markInstallmentLate })
   const { mutateAsync: unmarkLate } = useMutation({ mutationFn: unmarkInstallmentLate })
+  const { mutateAsync: saveDueDate } = useMutation({
+    mutationFn: (dueDate: string) => updateInstallmentDueDate(inst.id, dueDate),
+  })
+
+  async function handleSaveDue() {
+    await saveDueDate(dueValue)
+    toast.success('Vencimento atualizado.')
+    setEditingDue(false)
+    onChange()
+  }
 
   async function handleMarkLate() {
     await markLate({ installmentId: inst.id, lateFeePercent: Number(lateFee), reason })
@@ -394,7 +490,40 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
       <div className="flex items-start justify-between">
         <div>
           <p className="font-medium">Parcela {inst.number}</p>
-          <p className="text-xs text-muted-foreground">Vence {formatDate(inst.dueDate)}</p>
+          {editingDue ? (
+            <div className="mt-1 flex items-center gap-1">
+              <Input
+                type="date"
+                className="h-8 w-auto"
+                value={dueValue}
+                onChange={(e) => setDueValue(e.target.value)}
+              />
+              <Button size="sm" className="h-8" onClick={handleSaveDue}>
+                Salvar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8"
+                onClick={() => setEditingDue(false)}
+              >
+                cancelar
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Vence {formatDate(inst.dueDate)}{' '}
+              <button
+                className="text-primary underline"
+                onClick={() => {
+                  setDueValue(inst.dueDate.slice(0, 10))
+                  setEditingDue(true)
+                }}
+              >
+                editar
+              </button>
+            </p>
+          )}
           <div className="mt-1 flex flex-wrap gap-1">
             <Tag>{statusLabel}</Tag>
             {inst.overdue && inst.status !== 'PAID' && <Tag tone="red">vencida</Tag>}
