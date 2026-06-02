@@ -33,6 +33,17 @@ export class InMemorySalesRepository implements SalesRepository {
     return this.items.filter((s) => s.customer.userId === userId)
   }
 
+  async update(id: string, data: Prisma.SaleUpdateInput): Promise<SaleWithDetails> {
+    const sale = this.items.find((s) => s.id === id)
+    if (!sale) throw new Error('Sale not found')
+    if (data.description !== undefined) sale.description = data.description as string | null
+    if (data.productCostInCents !== undefined) {
+      sale.productCostInCents = data.productCostInCents as number
+    }
+    if (data.saleDate !== undefined) sale.saleDate = new Date(data.saleDate as string)
+    return sale
+  }
+
   async delete(id: string) {
     this.items = this.items.filter((s) => s.id !== id)
   }

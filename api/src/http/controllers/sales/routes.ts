@@ -3,6 +3,7 @@ import { verifyJwt } from '@/http/middlewares/verify-jwt'
 import { calculate } from './calculate'
 import { createSale } from './create'
 import { saleDetails } from './details'
+import { updateSale } from './update'
 import { deleteSale } from './delete'
 import { createReceipt } from './create-receipt'
 import { voidReceipt } from './void-receipt'
@@ -14,6 +15,7 @@ export async function salesRoutes(app: FastifyInstance) {
   app.post('/sales/calculate', calculate)
   app.post('/sales', createSale)
   app.get('/sales/:id', saleDetails)
+  app.put('/sales/:id', updateSale)
   app.delete('/sales/:id', deleteSale)
 
   // Recebimentos (crediário)

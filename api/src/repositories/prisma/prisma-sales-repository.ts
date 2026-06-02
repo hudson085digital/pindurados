@@ -37,6 +37,10 @@ export class PrismaSalesRepository implements SalesRepository {
     })
   }
 
+  async update(id: string, data: Prisma.SaleUpdateInput) {
+    return prisma.sale.update({ where: { id }, data, include })
+  }
+
   async delete(id: string) {
     await prisma.sale.delete({ where: { id } })
   }

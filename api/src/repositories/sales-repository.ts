@@ -15,5 +15,6 @@ export interface SalesRepository {
   findById(id: string): Promise<SaleWithDetails | null>
   findManyByCustomerId(customerId: string): Promise<SaleWithDetails[]>
   findManyByUserId(userId: string): Promise<SaleWithDetails[]>
+  update(id: string, data: Prisma.SaleUpdateInput): Promise<SaleWithDetails>
   delete(id: string): Promise<void>
 }
