@@ -6,8 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Conexão direta (sem pgbouncer) para migrations — no Supabase use a porta 5432.
+  // Localmente aponta para o mesmo banco.
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
