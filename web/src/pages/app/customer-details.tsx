@@ -145,8 +145,13 @@ const METHOD_LABEL: Record<ReceiptMethod, string> = {
 
 const ALL_METHODS: ReceiptMethod[] = ['PIX', 'CARD', 'CREDIT', 'DEBIT', 'CASH']
 
-function methodsLabel(methods: ReceiptMethod[]): string {
-  return methods.length ? methods.map((m) => METHOD_LABEL[m]).join(' + ') : 'sem forma'
+function methodsLabel(methods: ReceiptMethod[], amounts: number[] = []): string {
+  if (!methods.length) return 'sem forma'
+  // Com valor por forma (2+ formas), mostra "Pix R$600 + Dinheiro R$400".
+  if (amounts.length === methods.length) {
+    return methods.map((m, i) => `${METHOD_LABEL[m]} ${formatCurrency(amounts[i])}`).join(' + ')
+  }
+  return methods.map((m) => METHOD_LABEL[m]).join(' + ')
 }
 
 function toggleMethod(list: ReceiptMethod[], m: ReceiptMethod): ReceiptMethod[] {
@@ -358,6 +363,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   const [open, setOpen] = useState(false)
   const [amountCents, setAmountCents] = useState(0)
   const [methods, setMethods] = useState<ReceiptMethod[]>([])
+  const [methodAmounts, setMethodAmounts] = useState<Record<string, number>>({})
   const [receivedAt, setReceivedAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -370,6 +376,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   const [editId, setEditId] = useState<string | null>(null)
   const [editAmount, setEditAmount] = useState(0)
   const [editMethods, setEditMethods] = useState<ReceiptMethod[]>([])
+  const [editMethodAmounts, setEditMethodAmounts] = useState<Record<string, number>>({})
   const [editDate, setEditDate] = useState('')
   const [editNote, setEditNote] = useState('')
   const [editFile, setEditFile] = useState<File | null>(null)
@@ -378,6 +385,9 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
     setEditId(r.id)
     setEditAmount(r.amountInCents)
     setEditMethods(r.methods)
+    const amts: Record<string, number> = {}
+    r.methods.forEach((m, i) => (amts[m] = r.methodAmountsInCents[i] ?? 0))
+    setEditMethodAmounts(amts)
     setEditDate(r.receivedAt.slice(0, 10))
     setEditNote(r.note ?? '')
     setEditFile(null)
@@ -386,12 +396,20 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   async function handleEdit() {
     if (!editId) return
     if (!editAmount) return toast.error('Informe um valor.')
+    let methodAmountsInCents: number[] | undefined
+    if (editMethods.length >= 2) {
+      methodAmountsInCents = editMethods.map((m) => editMethodAmounts[m] ?? 0)
+      if (methodAmountsInCents.reduce((s, a) => s + a, 0) !== editAmount) {
+        return toast.error('A soma dos valores por forma deve ser igual ao valor recebido.')
+      }
+    }
     try {
       await edit({
         saleId: sale.id,
         receiptId: editId,
         amountInCents: editAmount,
         methods: editMethods,
+        methodAmountsInCents,
         receivedAt: editDate,
         note: editNote,
         comprovante: editFile,
@@ -417,12 +435,20 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
         `Valor acima do saldo. Receba no máximo ${formatCurrency(sale.balanceInCents)}.`,
       )
     }
+    let methodAmountsInCents: number[] | undefined
+    if (methods.length >= 2) {
+      methodAmountsInCents = methods.map((m) => methodAmounts[m] ?? 0)
+      if (methodAmountsInCents.reduce((s, a) => s + a, 0) !== amountCents) {
+        return toast.error('A soma dos valores por forma deve ser igual ao valor recebido.')
+      }
+    }
     try {
-      await create({ saleId: sale.id, amountInCents: amountCents, methods, comprovante: file, receivedAt, note })
+      await create({ saleId: sale.id, amountInCents: amountCents, methods, methodAmountsInCents, comprovante: file, receivedAt, note })
       toast.success('Recebimento registrado!')
       setOpen(false)
       setAmountCents(0)
       setMethods([])
+      setMethodAmounts({})
       setNote('')
       setFile(null)
       onChange()
@@ -485,6 +511,12 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                   ))}
                 </div>
               </div>
+              <MethodAmountFields
+                methods={methods}
+                amounts={methodAmounts}
+                setAmounts={setMethodAmounts}
+                total={amountCents}
+              />
               <div>
                 <Label>Data</Label>
                 <Input
@@ -530,7 +562,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 <span className={cn(isReversal && 'text-muted-foreground')}>
                   {isReversal ? '↩ Estorno ' : '✓ '}
                   <strong>{formatCurrency(Math.abs(r.amountInCents))}</strong> ·{' '}
-                  {methodsLabel(r.methods)} · {formatDate(r.receivedAt)}
+                  {methodsLabel(r.methods, r.methodAmountsInCents)} · {formatDate(r.receivedAt)}
                   {r.note && !isReversal && ` · ${r.note}`}
                   {r.receiptPath && (
                     <>
@@ -594,6 +626,12 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
               ))}
             </div>
           </div>
+          <MethodAmountFields
+            methods={editMethods}
+            amounts={editMethodAmounts}
+            setAmounts={setEditMethodAmounts}
+            total={editAmount}
+          />
           <div>
             <Label>Data</Label>
             <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
@@ -769,6 +807,41 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function MethodAmountFields({
+  methods,
+  amounts,
+  setAmounts,
+  total,
+}: {
+  methods: ReceiptMethod[]
+  amounts: Record<string, number>
+  setAmounts: React.Dispatch<React.SetStateAction<Record<string, number>>>
+  total: number
+}) {
+  if (methods.length < 2) return null
+  const sum = methods.reduce((s, m) => s + (amounts[m] ?? 0), 0)
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <p className="text-xs text-muted-foreground">
+        Quanto entrou em cada forma (soma deve dar {formatCurrency(total)}):
+      </p>
+      {methods.map((m) => (
+        <div key={m} className="flex items-center gap-2">
+          <span className="w-20 shrink-0 text-sm">{METHOD_LABEL[m]}</span>
+          <CurrencyInput
+            valueInCents={amounts[m] ?? 0}
+            onChangeCents={(c) => setAmounts((prev) => ({ ...prev, [m]: c }))}
+          />
+        </div>
+      ))}
+      <p className={cn('text-sm font-semibold', sum !== total && 'text-destructive')}>
+        Soma: {formatCurrency(sum)}
+        {sum !== total && ` (faltam ${formatCurrency(total - sum)})`}
+      </p>
     </div>
   )
 }

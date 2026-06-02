@@ -99,6 +99,32 @@ describe('CreateReceiptUseCase', () => {
     ).rejects.toThrowError('já está quitado')
   })
 
+  it('guarda o valor por forma quando há 2+ formas', async () => {
+    const { receipt } = await sut.execute({
+      userId: USER_ID,
+      saleId: 'sale-1',
+      amountInCents: 50000,
+      methods: ['PIX', 'CASH'],
+      methodAmountsInCents: [30000, 20000],
+      receiptPath: 'c.jpg',
+    })
+    expect(receipt.methods).toEqual(['PIX', 'CASH'])
+    expect(receipt.methodAmountsInCents).toEqual([30000, 20000])
+  })
+
+  it('rejeita quando a soma por forma difere do total', async () => {
+    await expect(() =>
+      sut.execute({
+        userId: USER_ID,
+        saleId: 'sale-1',
+        amountInCents: 50000,
+        methods: ['PIX', 'CASH'],
+        methodAmountsInCents: [30000, 30000],
+        receiptPath: 'c.jpg',
+      }),
+    ).rejects.toThrowError('soma dos valores por forma')
+  })
+
   it('rejeita valor zero ou negativo', async () => {
     await expect(() =>
       sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 0, methods: ['PIX'] }),

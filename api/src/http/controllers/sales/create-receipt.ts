@@ -17,6 +17,7 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
 
   let amountInCents: number | undefined
   const methods: string[] = []
+  const methodAmountsInCents: number[] = []
   let receivedAt: Date | undefined
   let note: string | undefined
   let receiptPath: string | null = null
@@ -35,6 +36,12 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
       // "methods" pode vir repetido (uma ou mais formas) ou separado por vírgula.
       if (part.fieldname === 'methods' && part.value) {
         methods.push(...String(part.value).split(',').map((m) => m.trim()).filter(Boolean))
+      }
+      // "methodAmounts" alinhado a methods (valor por forma).
+      if (part.fieldname === 'methodAmounts' && part.value) {
+        methodAmountsInCents.push(
+          ...String(part.value).split(',').map((n) => Number(n.trim())).filter((n) => !Number.isNaN(n)),
+        )
       }
       if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
       if (part.fieldname === 'note' && part.value) note = String(part.value)
@@ -57,6 +64,7 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
       saleId,
       amountInCents: parsed.data.amountInCents,
       methods: parsed.data.methods,
+      methodAmountsInCents,
       receivedAt,
       note: note ?? null,
       receiptPath,

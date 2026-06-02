@@ -36,9 +36,9 @@ describe('buildDashboard', () => {
     const d = buildDashboard([
       sale({
         receipts: [
-          { amountInCents: 30000, methods: ['PIX'], receivedAt: new Date('2026-03-10T12:00:00Z') },
-          { amountInCents: 20000, methods: ['CASH'], receivedAt: new Date('2026-04-05T12:00:00Z') },
-          { amountInCents: -10000, methods: ['PIX'], receivedAt: new Date('2026-04-20T12:00:00Z') },
+          { amountInCents: 30000, methods: ['PIX'], methodAmountsInCents: [], receivedAt: new Date('2026-03-10T12:00:00Z') },
+          { amountInCents: 20000, methods: ['CASH'], methodAmountsInCents: [], receivedAt: new Date('2026-04-05T12:00:00Z') },
+          { amountInCents: -10000, methods: ['PIX'], methodAmountsInCents: [], receivedAt: new Date('2026-04-20T12:00:00Z') },
         ],
       }),
     ])
@@ -52,8 +52,8 @@ describe('buildDashboard', () => {
     const d = buildDashboard([
       sale({
         receipts: [
-          { amountInCents: 10000, methods: ['PIX', 'CASH'], receivedAt: new Date('2026-03-10T12:00:00Z') },
-          { amountInCents: 5000, methods: [], receivedAt: new Date('2026-03-11T12:00:00Z') },
+          { amountInCents: 10000, methods: ['PIX', 'CASH'], methodAmountsInCents: [], receivedAt: new Date('2026-03-10T12:00:00Z') },
+          { amountInCents: 5000, methods: [], methodAmountsInCents: [], receivedAt: new Date('2026-03-11T12:00:00Z') },
         ],
       }),
     ])
@@ -61,6 +61,19 @@ describe('buildDashboard', () => {
     expect(map.PIX).toBe(5000)
     expect(map.CASH).toBe(5000)
     expect(map.NONE).toBe(5000)
+  })
+
+  it('por forma usa o valor real por forma quando informado', () => {
+    const d = buildDashboard([
+      sale({
+        receipts: [
+          { amountInCents: 10000, methods: ['PIX', 'CASH'], methodAmountsInCents: [7000, 3000], receivedAt: new Date('2026-03-10T12:00:00Z') },
+        ],
+      }),
+    ])
+    const map = Object.fromEntries(d.byMethod.map((m) => [m.method, m.amountInCents]))
+    expect(map.PIX).toBe(7000)
+    expect(map.CASH).toBe(3000)
   })
 
   it('upcoming lista parcelas não pagas em ordem de vencimento', () => {

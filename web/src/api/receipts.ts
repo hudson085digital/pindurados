@@ -5,6 +5,7 @@ export interface CreateReceiptBody {
   saleId: string
   amountInCents: number
   methods: ReceiptMethod[]
+  methodAmountsInCents?: number[]
   comprovante: File
   receivedAt?: string
   note?: string
@@ -14,6 +15,7 @@ export async function createReceipt({
   saleId,
   amountInCents,
   methods,
+  methodAmountsInCents,
   comprovante,
   receivedAt,
   note,
@@ -21,6 +23,9 @@ export async function createReceipt({
   const form = new FormData()
   form.append('amountInCents', String(amountInCents))
   methods.forEach((m) => form.append('methods', m))
+  if (methodAmountsInCents && methodAmountsInCents.length) {
+    form.append('methodAmounts', methodAmountsInCents.join(','))
+  }
   form.append('comprovante', comprovante)
   if (receivedAt) form.append('receivedAt', receivedAt)
   if (note) form.append('note', note)
@@ -33,6 +38,7 @@ export interface UpdateReceiptBody {
   receiptId: string
   amountInCents?: number
   methods?: ReceiptMethod[]
+  methodAmountsInCents?: number[]
   receivedAt?: string
   note?: string
   comprovante?: File | null
@@ -43,6 +49,7 @@ export async function updateReceipt({
   receiptId,
   amountInCents,
   methods,
+  methodAmountsInCents,
   receivedAt,
   note,
   comprovante,
@@ -51,6 +58,7 @@ export async function updateReceipt({
   if (amountInCents !== undefined) form.append('amountInCents', String(amountInCents))
   // Envia "methods" mesmo vazio (string vazia) para sinalizar edição das formas.
   if (methods !== undefined) form.append('methods', methods.join(','))
+  if (methodAmountsInCents !== undefined) form.append('methodAmounts', methodAmountsInCents.join(','))
   if (receivedAt) form.append('receivedAt', receivedAt)
   if (note !== undefined) form.append('note', note)
   if (comprovante) form.append('comprovante', comprovante)

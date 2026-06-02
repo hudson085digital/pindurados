@@ -10,6 +10,8 @@ interface CreateReceiptUseCaseRequest {
   saleId: string
   amountInCents: number
   methods: ReceiptMethod[]
+  /** Valor por forma (alinhado a methods); obrigatório quando há 2+ formas. */
+  methodAmountsInCents?: number[]
   receivedAt?: Date
   note?: string | null
   receiptPath?: string | null
@@ -25,6 +27,24 @@ function formatBRL(cents: number): string {
   return `R$ ${intPart},${decPart}`
 }
 
+// Valida/normaliza o valor por forma. Com 2+ formas exige valores que somem o total.
+export function resolveMethodAmounts(
+  methods: ReceiptMethod[],
+  amountInCents: number,
+  methodAmountsInCents: number[] | undefined,
+): number[] {
+  if (methods.length < 2) return []
+
+  const amounts = methodAmountsInCents ?? []
+  if (amounts.length !== methods.length || amounts.some((a) => !Number.isInteger(a) || a <= 0)) {
+    throw new BusinessRuleError('Informe o valor de cada forma de pagamento (maior que zero).')
+  }
+  if (amounts.reduce((s, a) => s + a, 0) !== amountInCents) {
+    throw new BusinessRuleError('A soma dos valores por forma deve ser igual ao valor recebido.')
+  }
+  return amounts
+}
+
 export class CreateReceiptUseCase {
   constructor(
     private salesRepository: SalesRepository,
@@ -36,6 +56,7 @@ export class CreateReceiptUseCase {
     saleId,
     amountInCents,
     methods,
+    methodAmountsInCents,
     receivedAt,
     note,
     receiptPath,
@@ -76,10 +97,13 @@ export class CreateReceiptUseCase {
       )
     }
 
+    const methodAmounts = resolveMethodAmounts(methods ?? [], amountInCents, methodAmountsInCents)
+
     const receipt = await this.receiptsRepository.create({
       saleId,
       amountInCents,
       methods: methods ?? [],
+      methodAmountsInCents: methodAmounts,
       receivedAt: receivedAt ?? new Date(),
       note: note ?? null,
       receiptPath: receiptPath ?? null,

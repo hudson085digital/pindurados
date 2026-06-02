@@ -39,6 +39,7 @@ export class VoidReceiptUseCase {
       saleId: original.saleId,
       amountInCents: -original.amountInCents,
       methods: original.methods,
+      methodAmountsInCents: original.methodAmountsInCents.map((a) => -a),
       receivedAt: new Date(),
       note: 'Estorno',
       reversesReceiptId: original.id,

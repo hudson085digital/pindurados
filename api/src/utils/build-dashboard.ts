@@ -17,7 +17,12 @@ export interface DashSale {
     overdue: boolean
     isLate: boolean
   }[]
-  receipts: { amountInCents: number; methods: string[]; receivedAt: Date }[]
+  receipts: {
+    amountInCents: number
+    methods: string[]
+    methodAmountsInCents: number[]
+    receivedAt: Date
+  }[]
 }
 
 export interface DashboardData {
@@ -95,13 +100,20 @@ export function buildDashboard(sales: DashSale[]): DashboardData {
       // por mês (líquido: estornos negativos reduzem)
       byMonth.set(monthKey(r.receivedAt), (byMonth.get(monthKey(r.receivedAt)) ?? 0) + r.amountInCents)
 
-      // por forma: divide o valor igualmente entre as formas; sem forma -> "NONE"
-      const ms = r.methods.length ? r.methods : ['NONE']
-      const base = Math.trunc(r.amountInCents / ms.length)
-      ms.forEach((m, i) => {
-        const part = i === ms.length - 1 ? r.amountInCents - base * (ms.length - 1) : base
-        byMethod.set(m, (byMethod.get(m) ?? 0) + part)
-      })
+      // por forma: usa o valor real por forma quando houver; senão divide igualmente;
+      // sem forma -> "NONE".
+      if (r.methods.length && r.methodAmountsInCents.length === r.methods.length) {
+        r.methods.forEach((m, i) => {
+          byMethod.set(m, (byMethod.get(m) ?? 0) + r.methodAmountsInCents[i])
+        })
+      } else {
+        const ms = r.methods.length ? r.methods : ['NONE']
+        const base = Math.trunc(r.amountInCents / ms.length)
+        ms.forEach((m, i) => {
+          const part = i === ms.length - 1 ? r.amountInCents - base * (ms.length - 1) : base
+          byMethod.set(m, (byMethod.get(m) ?? 0) + part)
+        })
+      }
     }
   }
 

@@ -17,6 +17,7 @@ export interface Receipt {
   id: string
   amountInCents: number
   methods: ReceiptMethod[]
+  methodAmountsInCents: number[]
   receivedAt: string
   note: string | null
   receiptPath: string | null

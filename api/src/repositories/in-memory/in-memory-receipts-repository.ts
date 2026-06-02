@@ -15,6 +15,7 @@ export class InMemoryReceiptsRepository implements ReceiptsRepository {
       id: data.id ?? randomUUID(),
       amountInCents: data.amountInCents,
       methods: (data.methods as Receipt['methods']) ?? [],
+      methodAmountsInCents: (data.methodAmountsInCents as number[]) ?? [],
       receivedAt: new Date(data.receivedAt),
       note: data.note ?? null,
       receiptPath: data.receiptPath ?? null,
@@ -36,6 +37,7 @@ export class InMemoryReceiptsRepository implements ReceiptsRepository {
     if (!receipt) throw new Error('Receipt not found')
     if (data.amountInCents !== undefined) receipt.amountInCents = data.amountInCents as number
     if (data.methods !== undefined) receipt.methods = data.methods as Receipt['methods']
+    if (data.methodAmountsInCents !== undefined) receipt.methodAmountsInCents = data.methodAmountsInCents as number[]
     if (data.receivedAt !== undefined) receipt.receivedAt = new Date(data.receivedAt as string)
     if (data.note !== undefined) receipt.note = data.note as string | null
     if (data.receiptPath !== undefined) receipt.receiptPath = data.receiptPath as string | null

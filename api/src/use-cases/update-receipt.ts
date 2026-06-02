@@ -2,6 +2,7 @@ import { Receipt, ReceiptMethod } from '@prisma/client'
 import { SalesRepository } from '@/repositories/sales-repository'
 import { ReceiptsRepository } from '@/repositories/receipts-repository'
 import { allocateReceipts, sumReceipts } from '@/utils/allocate-receipts'
+import { resolveMethodAmounts } from './create-receipt'
 import { ResourceNotFoundError } from './errors/resource-not-found-error'
 import { BusinessRuleError } from './errors/business-rule-error'
 
@@ -10,6 +11,7 @@ interface UpdateReceiptUseCaseRequest {
   receiptId: string
   amountInCents?: number
   methods?: ReceiptMethod[]
+  methodAmountsInCents?: number[]
   receivedAt?: Date
   note?: string | null
   /** Novo comprovante; se ausente, mantém o atual. */
@@ -37,6 +39,7 @@ export class UpdateReceiptUseCase {
     receiptId,
     amountInCents,
     methods,
+    methodAmountsInCents,
     receivedAt,
     note,
     receiptPath,
@@ -83,9 +86,18 @@ export class UpdateReceiptUseCase {
       }
     }
 
+    // Recalcula o valor por forma com as formas/valor efetivos.
+    const effectiveMethods = methods ?? receipt.methods
+    const methodAmounts = resolveMethodAmounts(
+      effectiveMethods,
+      newAmount,
+      methodAmountsInCents ?? receipt.methodAmountsInCents,
+    )
+
     const updated = await this.receiptsRepository.update(receiptId, {
       amountInCents: newAmount,
       ...(methods !== undefined ? { methods } : {}),
+      methodAmountsInCents: methodAmounts,
       ...(receivedAt !== undefined ? { receivedAt } : {}),
       ...(note !== undefined ? { note } : {}),
       ...(receiptPath ? { receiptPath } : {}),

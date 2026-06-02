@@ -23,6 +23,8 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
   let amountInCents: number | undefined
   let methodsProvided = false
   const methods: Method[] = []
+  let methodAmountsProvided = false
+  const methodAmountsInCents: number[] = []
   let receivedAt: Date | undefined
   let note: string | undefined
   let receiptPath: string | null = null
@@ -47,6 +49,12 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
             .filter(Boolean) as Method[],
         )
       }
+      if (part.fieldname === 'methodAmounts') {
+        methodAmountsProvided = true
+        methodAmountsInCents.push(
+          ...String(part.value).split(',').map((n) => Number(n.trim())).filter((n) => !Number.isNaN(n)),
+        )
+      }
       if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
       if (part.fieldname === 'note') note = String(part.value)
     }
@@ -59,6 +67,7 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
       receiptId,
       amountInCents,
       methods: methodsProvided ? methods : undefined,
+      methodAmountsInCents: methodAmountsProvided ? methodAmountsInCents : undefined,
       receivedAt,
       note,
       receiptPath,
