@@ -10,6 +10,15 @@ export async function updateSale(request: FastifyRequest, reply: FastifyReply) {
     description: z.string().optional().nullable(),
     productCostInCents: z.coerce.number().int().nonnegative().optional(),
     saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    firstDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    // Reparcelamento (opcional):
+    type: z.enum(['AUTOMATIC', 'MANUAL', 'BY_TOTAL']).optional(),
+    productValueInCents: z.coerce.number().int().positive().optional(),
+    downPaymentInCents: z.coerce.number().int().nonnegative().optional(),
+    interestPercent: z.coerce.number().nonnegative().optional(),
+    installmentsCount: z.coerce.number().int().positive().optional(),
+    targetTotalInCents: z.coerce.number().int().nonnegative().optional(),
+    customInstallmentValuesInCents: z.array(z.coerce.number().int()).optional(),
   })
 
   const { id } = paramsSchema.parse(request.params)

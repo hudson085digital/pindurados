@@ -45,6 +45,13 @@ export interface UpdateSaleBody {
   description?: string | null
   productCostInCents?: number
   saleDate?: string
+  // Reparcelamento (opcional): se enviados, regeneram as parcelas.
+  type?: SaleType
+  productValueInCents?: number
+  downPaymentInCents?: number
+  interestPercent?: number
+  installmentsCount?: number
+  firstDueDate?: string
 }
 
 export async function updateSale(id: string, body: UpdateSaleBody) {

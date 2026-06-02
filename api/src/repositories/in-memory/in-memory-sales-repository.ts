@@ -1,6 +1,10 @@
 import { Prisma } from '@prisma/client'
 import { randomUUID } from 'node:crypto'
-import { SalesRepository, SaleWithDetails } from '../sales-repository'
+import {
+  SalesRepository,
+  SaleWithDetails,
+  ReparcelarInstallment,
+} from '../sales-repository'
 
 // Implementação em memória — usada nos testes, sem precisar de banco.
 // `items` guarda vendas já no formato detalhado (com customer/installments/receipts).
@@ -41,6 +45,34 @@ export class InMemorySalesRepository implements SalesRepository {
       sale.productCostInCents = data.productCostInCents as number
     }
     if (data.saleDate !== undefined) sale.saleDate = new Date(data.saleDate as string)
+    return sale
+  }
+
+  async reparcelar(
+    id: string,
+    data: Prisma.SaleUpdateInput,
+    installments: ReparcelarInstallment[],
+  ): Promise<SaleWithDetails> {
+    const sale = this.items.find((s) => s.id === id)
+    if (!sale) throw new Error('Sale not found')
+    if (data.description !== undefined) sale.description = data.description as string | null
+    if (data.productValueInCents !== undefined) sale.productValueInCents = data.productValueInCents as number
+    if (data.productCostInCents !== undefined) sale.productCostInCents = data.productCostInCents as number
+    if (data.downPaymentInCents !== undefined) sale.downPaymentInCents = data.downPaymentInCents as number
+    if (data.interestPercent !== undefined) sale.interestPercent = data.interestPercent as number
+    if (data.totalInCents !== undefined) sale.totalInCents = data.totalInCents as number
+    if (data.saleDate !== undefined) sale.saleDate = new Date(data.saleDate as string)
+    sale.installments = installments.map((inst) => ({
+      id: randomUUID(),
+      number: inst.number,
+      amountInCents: inst.amountInCents,
+      dueDate: inst.dueDate,
+      isLate: false,
+      lateInterestInCents: 0,
+      lateFeePercent: null,
+      lateReason: null,
+      saleId: id,
+    }))
     return sale
   }
 

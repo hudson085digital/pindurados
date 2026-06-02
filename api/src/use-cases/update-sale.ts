@@ -1,6 +1,8 @@
-import { SalesRepository } from '@/repositories/sales-repository'
+import { SalesRepository, ReparcelarInstallment } from '@/repositories/sales-repository'
 import { serializeSale, SerializedSale } from '@/utils/serialize-sale'
-import { isoToDate } from '@/utils/add-months'
+import { calculateSale, SaleType } from './calculate-sale'
+import { addMonthsISO, isoToDate, toISODate } from '@/utils/add-months'
+import { sumReceipts } from '@/utils/allocate-receipts'
 import { ResourceNotFoundError } from './errors/resource-not-found-error'
 import { BusinessRuleError } from './errors/business-rule-error'
 
@@ -11,38 +13,106 @@ interface UpdateSaleUseCaseRequest {
   productCostInCents?: number
   /** "YYYY-MM-DD" */
   saleDate?: string
+  /** "YYYY-MM-DD" — vencimento da 1ª parcela ao reparcelar. */
+  firstDueDate?: string
+  // Campos de reparcelamento (se algum vier, regenera as parcelas):
+  type?: SaleType
+  productValueInCents?: number
+  downPaymentInCents?: number
+  interestPercent?: number
+  installmentsCount?: number
+  targetTotalInCents?: number
+  customInstallmentValuesInCents?: number[]
 }
 
 interface UpdateSaleUseCaseResponse {
   sale: SerializedSale
 }
 
-// Edita campos não-estruturais de uma venda (spec 007): descrição, custo e data.
-// Não mexe em parcelas/recebimentos.
+function brl(cents: number): string {
+  const intPart = String(Math.floor(cents / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `R$ ${intPart},${String(cents % 100).padStart(2, '0')}`
+}
+
+// Edita uma venda. Sem campos financeiros, só atualiza descrição/custo/data.
+// Com campos financeiros, faz um REPARCELAMENTO: recalcula o total e regenera as
+// parcelas, mantendo os recebimentos (o que já foi pago é considerado via cascata).
 export class UpdateSaleUseCase {
   constructor(private salesRepository: SalesRepository) {}
 
-  async execute({
-    userId,
-    saleId,
-    description,
-    productCostInCents,
-    saleDate,
-  }: UpdateSaleUseCaseRequest): Promise<UpdateSaleUseCaseResponse> {
-    const sale = await this.salesRepository.findById(saleId)
-    if (!sale || sale.customer.userId !== userId) {
+  async execute(req: UpdateSaleUseCaseRequest): Promise<UpdateSaleUseCaseResponse> {
+    const sale = await this.salesRepository.findById(req.saleId)
+    if (!sale || sale.customer.userId !== req.userId) {
       throw new ResourceNotFoundError('Venda')
     }
 
-    if (productCostInCents !== undefined && productCostInCents < 0) {
+    if (req.productCostInCents !== undefined && req.productCostInCents < 0) {
       throw new BusinessRuleError('O custo não pode ser negativo.')
     }
 
-    const updated = await this.salesRepository.update(saleId, {
-      ...(description !== undefined ? { description } : {}),
-      ...(productCostInCents !== undefined ? { productCostInCents } : {}),
-      ...(saleDate !== undefined ? { saleDate: isoToDate(saleDate) } : {}),
+    const isReparcelamento =
+      req.type !== undefined ||
+      req.productValueInCents !== undefined ||
+      req.interestPercent !== undefined ||
+      req.installmentsCount !== undefined ||
+      req.targetTotalInCents !== undefined ||
+      req.customInstallmentValuesInCents !== undefined
+
+    if (!isReparcelamento) {
+      const updated = await this.salesRepository.update(req.saleId, {
+        ...(req.description !== undefined ? { description: req.description } : {}),
+        ...(req.productCostInCents !== undefined ? { productCostInCents: req.productCostInCents } : {}),
+        ...(req.saleDate !== undefined ? { saleDate: isoToDate(req.saleDate) } : {}),
+      })
+      return { sale: serializeSale(updated) }
+    }
+
+    // --- Reparcelamento ---
+    const calc = calculateSale({
+      type: req.type ?? sale.type,
+      productValueInCents: req.productValueInCents ?? sale.productValueInCents,
+      downPaymentInCents: req.downPaymentInCents ?? sale.downPaymentInCents,
+      interestPercent: req.interestPercent,
+      installmentsCount: req.installmentsCount,
+      targetTotalInCents: req.targetTotalInCents,
+      customInstallmentValuesInCents: req.customInstallmentValuesInCents,
     })
+
+    const alreadyReceived = sumReceipts(sale.receipts)
+    if (calc.totalInCents < alreadyReceived) {
+      throw new BusinessRuleError(
+        `O novo total (${brl(calc.totalInCents)}) não pode ser menor que o já recebido (${brl(alreadyReceived)}).`,
+      )
+    }
+
+    // Vencimento da 1ª parcela: informado, ou o da 1ª parcela atual, ou 1 mês após a venda.
+    const saleISO = req.saleDate ?? toISODate(sale.saleDate)
+    const current = sale.installments.slice().sort((a, b) => a.number - b.number)[0]
+    const firstDueISO =
+      req.firstDueDate ?? (current ? toISODate(current.dueDate) : addMonthsISO(saleISO, 1))
+
+    const installments: ReparcelarInstallment[] = calc.installmentValuesInCents.map(
+      (amountInCents, index) => ({
+        number: index + 1,
+        amountInCents,
+        dueDate: isoToDate(addMonthsISO(firstDueISO, index)),
+      }),
+    )
+
+    const updated = await this.salesRepository.reparcelar(
+      req.saleId,
+      {
+        ...(req.description !== undefined ? { description: req.description } : {}),
+        ...(req.productCostInCents !== undefined ? { productCostInCents: req.productCostInCents } : {}),
+        ...(req.saleDate !== undefined ? { saleDate: isoToDate(req.saleDate) } : {}),
+        type: req.type ?? sale.type,
+        productValueInCents: calc.productValueInCents,
+        downPaymentInCents: calc.downPaymentInCents,
+        interestPercent: calc.interestPercent,
+        totalInCents: calc.totalInCents,
+      },
+      installments,
+    )
 
     return { sale: serializeSale(updated) }
   }

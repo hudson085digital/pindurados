@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { SalesRepository } from '../sales-repository'
+import { SalesRepository, ReparcelarInstallment } from '../sales-repository'
 
 const include = {
   customer: true,
@@ -39,6 +39,21 @@ export class PrismaSalesRepository implements SalesRepository {
 
   async update(id: string, data: Prisma.SaleUpdateInput) {
     return prisma.sale.update({ where: { id }, data, include })
+  }
+
+  async reparcelar(
+    id: string,
+    data: Prisma.SaleUpdateInput,
+    installments: ReparcelarInstallment[],
+  ) {
+    return prisma.$transaction(async (tx) => {
+      await tx.installment.deleteMany({ where: { saleId: id } })
+      return tx.sale.update({
+        where: { id },
+        data: { ...data, installments: { create: installments } },
+        include,
+      })
+    })
   }
 
   async delete(id: string) {
