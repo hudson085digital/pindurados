@@ -16,11 +16,6 @@ import { Label } from '@/components/ui/label'
 
 const MODES: { value: SaleType; label: string; hint: string }[] = [
   {
-    value: 'AUTOMATIC',
-    label: 'Automática',
-    hint: 'O juros define o total e o nº de parcelas (cada 10% = 1 parcela).',
-  },
-  {
     value: 'MANUAL',
     label: 'Manual',
     hint: 'Você escolhe o juros e o número de parcelas.',
@@ -42,7 +37,7 @@ export function NewSale() {
   })
 
   const [customerId, setCustomerId] = useState('')
-  const [type, setType] = useState<SaleType>('AUTOMATIC')
+  const [type, setType] = useState<SaleType>('MANUAL')
   const [description, setDescription] = useState('')
   const [productValue, setProductValue] = useState('')
   const [productCost, setProductCost] = useState('')
@@ -93,14 +88,12 @@ export function NewSale() {
         installmentsCount: Number(installments) || 1,
       }
     }
-    if (type === 'MANUAL') {
-      return {
-        ...base,
-        interestPercent: Number(interest) || 0,
-        installmentsCount: Number(installments) || 1,
-      }
+    // MANUAL
+    return {
+      ...base,
+      interestPercent: Number(interest) || 0,
+      installmentsCount: Number(installments) || 1,
     }
-    return { ...base, interestPercent: Number(interest) || 0 }
   }
 
   // recalcula a prévia (com debounce)
@@ -273,7 +266,7 @@ export function NewSale() {
         {/* Modo */}
         <div>
           <Label>Tipo de venda</Label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5">
             {MODES.map((m) => (
               <button
                 key={m.value}
@@ -354,17 +347,15 @@ export function NewSale() {
                 />
               </div>
             )}
-            {type !== 'AUTOMATIC' && (
-              <div>
-                <Label>Nº de parcelas</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={installments}
-                  onChange={(e) => setInstallmentCount(e.target.value)}
-                />
-              </div>
-            )}
+            <div>
+              <Label>Nº de parcelas</Label>
+              <Input
+                type="number"
+                min={1}
+                value={installments}
+                onChange={(e) => setInstallmentCount(e.target.value)}
+              />
+            </div>
           </div>
         )}
 

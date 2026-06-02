@@ -2,33 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { calculateSale } from './calculate-sale'
 
 describe('Calculadora de venda (juros)', () => {
-  it('AUTOMATIC: produto 1000, entrada 500, juros 50% => 750 em 5x de 150', () => {
-    const r = calculateSale({
-      type: 'AUTOMATIC',
-      productValueInCents: 100000,
-      downPaymentInCents: 50000,
-      interestPercent: 50,
-    })
-
-    expect(r.remainingInCents).toBe(50000)
-    expect(r.interestInCents).toBe(25000)
-    expect(r.totalInCents).toBe(75000)
-    expect(r.installmentsCount).toBe(5)
-    expect(r.installmentValuesInCents).toEqual([15000, 15000, 15000, 15000, 15000])
-  })
-
-  it('AUTOMATIC: juros 30% gera 3 parcelas (regra dos 10%)', () => {
-    const r = calculateSale({
-      type: 'AUTOMATIC',
-      productValueInCents: 100000,
-      downPaymentInCents: 40000,
-      interestPercent: 30,
-    })
-    expect(r.totalInCents).toBe(78000)
-    expect(r.installmentsCount).toBe(3)
-    expect(r.installmentValuesInCents).toEqual([26000, 26000, 26000])
-  })
-
   it('MANUAL: escolhe livremente parcelas e juros', () => {
     const r = calculateSale({
       type: 'MANUAL',

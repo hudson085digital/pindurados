@@ -1,24 +1,24 @@
 // ====== Calculadora de juros do Pindurados (lógica pura, em centavos) ======
-// Regras em ESPECIFICACAO.md. Esta função NÃO acessa banco — é 100% testável.
+// Esta função NÃO acessa banco — é 100% testável.
 //
-// Três modos:
-//  - AUTOMATIC: informo o juros %; ele define o total E o nº de parcelas (10% = 1).
-//  - MANUAL:    informo o juros % E o nº de parcelas livremente.
-//  - BY_TOTAL:  informo o VALOR FINAL e o nº de parcelas; o juros é deduzido.
+// Modos:
+//  - MANUAL:   informo o juros % E o nº de parcelas livremente.
+//  - BY_TOTAL: informo o VALOR FINAL e o nº de parcelas; o juros é deduzido.
 //
 // Em qualquer modo posso ainda passar `customInstallmentValuesInCents` para
 // definir o valor de cada parcela na mão (ex.: 2x 1000 + 1x 500). Nesse caso o
 // total passa a ser a soma desses valores e o juros é recalculado.
 
+// AUTOMATIC permanece só para compatibilidade com vendas antigas no banco.
 export type SaleType = 'AUTOMATIC' | 'MANUAL' | 'BY_TOTAL'
 
 export interface CalculateSaleInput {
   type: SaleType
   productValueInCents: number
   downPaymentInCents?: number
-  /** AUTOMATIC e MANUAL. */
+  /** MANUAL. */
   interestPercent?: number
-  /** MANUAL e BY_TOTAL (e override opcional no AUTOMATIC). */
+  /** MANUAL e BY_TOTAL. */
   installmentsCount?: number
   /** BY_TOTAL: valor final desejado (com juros embutido). */
   targetTotalInCents?: number
@@ -94,19 +94,11 @@ export function calculateSale(input: CalculateSaleInput): CalculateSaleResult {
         : 0
     installmentValuesInCents = splitTotal(totalInCents, installmentsCount)
   } else {
-    // ---- Juros define o total (AUTOMATIC / MANUAL) ----
+    // ---- MANUAL: juros % + nº de parcelas ----
     interestPercent = input.interestPercent ?? 0
     const interestInCents = Math.round(remainingInCents * (interestPercent / 100))
     totalInCents = remainingInCents + interestInCents
-
-    if (input.type === 'MANUAL') {
-      installmentsCount = Math.max(1, Math.floor(input.installmentsCount ?? 1))
-    } else if (input.installmentsCount) {
-      installmentsCount = Math.max(1, Math.floor(input.installmentsCount))
-    } else {
-      // AUTOMATIC sem override: cada 10% de juros = 1 parcela.
-      installmentsCount = Math.max(1, Math.round(interestPercent / 10))
-    }
+    installmentsCount = Math.max(1, Math.floor(input.installmentsCount ?? 1))
     installmentValuesInCents = splitTotal(totalInCents, installmentsCount)
   }
 

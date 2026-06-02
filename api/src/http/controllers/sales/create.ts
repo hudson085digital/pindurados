@@ -6,7 +6,7 @@ import { ResourceNotFoundError } from '@/use-cases/errors/resource-not-found-err
 export async function createSale(request: FastifyRequest, reply: FastifyReply) {
   const bodySchema = z.object({
     customerId: z.string().uuid(),
-    type: z.enum(['AUTOMATIC', 'MANUAL', 'BY_TOTAL']).default('AUTOMATIC'),
+    type: z.enum(['MANUAL', 'BY_TOTAL']).default('MANUAL'),
     description: z.string().optional().nullable(),
     productValueInCents: z.coerce.number().int().positive(),
     productCostInCents: z.coerce.number().int().nonnegative().default(0),

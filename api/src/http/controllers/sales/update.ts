@@ -12,7 +12,7 @@ export async function updateSale(request: FastifyRequest, reply: FastifyReply) {
     saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     firstDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     // Reparcelamento (opcional):
-    type: z.enum(['AUTOMATIC', 'MANUAL', 'BY_TOTAL']).optional(),
+    type: z.enum(['MANUAL', 'BY_TOTAL']).optional(),
     productValueInCents: z.coerce.number().int().positive().optional(),
     downPaymentInCents: z.coerce.number().int().nonnegative().optional(),
     interestPercent: z.coerce.number().nonnegative().optional(),

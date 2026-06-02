@@ -262,7 +262,8 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
           <div>
             <p className="font-semibold">{sale.description || 'Venda'}</p>
             <p className="text-sm text-muted-foreground">
-              {sale.type === 'MANUAL' ? 'Manual' : 'Automática'} · {formatDate(sale.saleDate)}
+              {sale.type === 'BY_TOTAL' ? 'Por valor final' : sale.type === 'AUTOMATIC' ? 'Automática' : 'Manual'}{' '}
+              · {formatDate(sale.saleDate)}
             </p>
           </div>
           <span
