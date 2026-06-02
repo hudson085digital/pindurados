@@ -16,9 +16,10 @@ mkdirSync(UPLOADS_DIR, { recursive: true })
 // --- Modo de armazenamento ---
 // Produção free: defina SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY para guardar os
 // comprovantes no Supabase Storage (não precisa de disco). Sem isso, usa disco local.
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const BUCKET = process.env.SUPABASE_BUCKET || 'comprovantes'
+// Remove barra(s) no fim para não gerar "//" no caminho (Invalid path...).
+const SUPABASE_URL = process.env.SUPABASE_URL?.trim().replace(/\/+$/, '')
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+const BUCKET = (process.env.SUPABASE_BUCKET || 'comprovantes').trim()
 
 export const usingSupabaseStorage = Boolean(SUPABASE_URL && SUPABASE_KEY)
 const supabase = usingSupabaseStorage ? createClient(SUPABASE_URL!, SUPABASE_KEY!) : null
@@ -55,7 +56,9 @@ async function optimize(buffer: Buffer, originalName: string) {
 // Grava um comprovante (otimizado) no storage e devolve a chave/nome do arquivo.
 export async function storeComprovante(buffer: Buffer, originalName: string): Promise<string> {
   const { data, ext, contentType } = await optimize(buffer, originalName)
-  const key = `${randomUUID()}${ext}`
+  // Extensão só com letras/números (evita "Invalid path" no Storage).
+  const safeExt = /^\.[a-z0-9]+$/.test(ext) ? ext : ''
+  const key = `${randomUUID()}${safeExt}`
 
   if (supabase) {
     const { error } = await supabase.storage.from(BUCKET).upload(key, data, { contentType })
