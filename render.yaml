@@ -7,8 +7,8 @@ services:
     runtime: node
     rootDir: api
     plan: free
-    buildCommand: pnpm install && pnpm prisma:generate && pnpm build
-    preDeployCommand: pnpm exec prisma migrate deploy
+    # migrate roda no build (preDeployCommand é recurso de plano pago no Render).
+    buildCommand: pnpm install && pnpm prisma:generate && pnpm exec prisma migrate deploy && pnpm build
     startCommand: pnpm start
     healthCheckPath: /health
     envVars:

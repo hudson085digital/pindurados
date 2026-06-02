@@ -24,8 +24,9 @@ git push -u origin 001-recebimento-parcial   # ou merge na main e push
 1. Render → **New → Blueprint** → conecte o repo (lê o `render.yaml`).
 2. Preencha as envs `sync:false`: `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL`,
    `SUPABASE_SERVICE_ROLE_KEY` (o `SUPABASE_BUCKET=comprovantes` já vem).
-3. Deploy. As migrations rodam sozinhas (preDeploy). Health: `GET /health`.
+3. Deploy. As migrations rodam no **build** (`prisma migrate deploy`). Health: `GET /health`.
    - Free dorme após inatividade (1ª request ~30s). Sem disco (usa o Storage).
+   - No plano free não há `preDeployCommand` (é pago) — por isso o migrate vai no build.
 4. Anote a URL (ex.: `https://pindurados-api.onrender.com`).
 
 ## 3. Web na Vercel
