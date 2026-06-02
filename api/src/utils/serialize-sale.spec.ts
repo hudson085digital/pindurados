@@ -21,7 +21,7 @@ function receipt(amountInCents: number, createdAt: Date): Receipt {
   return {
     id: `r-${createdAt.getTime()}-${amountInCents}`,
     amountInCents,
-    method: 'PIX',
+    methods: ['PIX'],
     receivedAt: createdAt,
     note: null,
     receiptPath: null,

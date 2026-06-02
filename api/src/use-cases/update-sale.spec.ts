@@ -72,7 +72,7 @@ describe('UpdateSaleUseCase — reparcelamento', () => {
       { id: 'p1', number: 1, amountInCents: 50000, dueDate: new Date('2026-03-10T12:00:00Z'), isLate: false, lateInterestInCents: 0, lateFeePercent: null, lateReason: null, saleId: 'sale-1' },
       { id: 'p2', number: 2, amountInCents: 50000, dueDate: new Date('2026-04-10T12:00:00Z'), isLate: false, lateInterestInCents: 0, lateFeePercent: null, lateReason: null, saleId: 'sale-1' },
     ]
-    await createReceipt.execute({ userId: USER, saleId: 'sale-1', amountInCents: 50000, method: 'PIX', receiptPath: 'c.jpg' })
+    await createReceipt.execute({ userId: USER, saleId: 'sale-1', amountInCents: 50000, methods: ['PIX'], receiptPath: 'c.jpg' })
   })
 
   it('reparcela para 1200 em 3x mantendo o que foi pago (balance 700)', async () => {

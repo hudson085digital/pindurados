@@ -67,7 +67,7 @@ describe('CreateReceiptUseCase', () => {
       userId: USER_ID,
       saleId: 'sale-1',
       amountInCents: 50000,
-      method: 'CASH',
+      methods: ['CASH'],
       receiptPath: 'comprovante.jpg',
     })
 
@@ -79,35 +79,35 @@ describe('CreateReceiptUseCase', () => {
 
   it('exige o comprovante de pagamento (spec 005)', async () => {
     await expect(() =>
-      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 50000, method: 'PIX' }),
+      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 50000, methods: ['PIX'] }),
     ).rejects.toThrowError('comprovante')
   })
 
   it('limita o recebimento ao saldo (Q2): rejeita valor acima do saldo', async () => {
-    await sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 50000, method: 'PIX', receiptPath: 'c.jpg' })
+    await sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 50000, methods: ['PIX'], receiptPath: 'c.jpg' })
 
     // saldo agora é 50000; tentar 60000 deve falhar
     await expect(() =>
-      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 60000, method: 'PIX', receiptPath: 'c.jpg' }),
+      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 60000, methods: ['PIX'], receiptPath: 'c.jpg' }),
     ).rejects.toBeInstanceOf(BusinessRuleError)
   })
 
   it('aceita receber exatamente o saldo e quita', async () => {
-    await sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 100000, method: 'PIX', receiptPath: 'c.jpg' })
+    await sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 100000, methods: ['PIX'], receiptPath: 'c.jpg' })
     await expect(() =>
-      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 1, method: 'PIX', receiptPath: 'c.jpg' }),
+      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 1, methods: ['PIX'], receiptPath: 'c.jpg' }),
     ).rejects.toThrowError('já está quitado')
   })
 
   it('rejeita valor zero ou negativo', async () => {
     await expect(() =>
-      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 0, method: 'PIX' }),
+      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 0, methods: ['PIX'] }),
     ).rejects.toBeInstanceOf(BusinessRuleError)
   })
 
   it('não deixa receber em venda de outro usuário', async () => {
     await expect(() =>
-      sut.execute({ userId: 'outro', saleId: 'sale-1', amountInCents: 1000, method: 'PIX' }),
+      sut.execute({ userId: 'outro', saleId: 'sale-1', amountInCents: 1000, methods: ['PIX'] }),
     ).rejects.toBeInstanceOf(ResourceNotFoundError)
   })
 })

@@ -18,8 +18,11 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
   })
   const { receiptId } = paramsSchema.parse(request.params)
 
+  type Method = 'PIX' | 'CASH' | 'CARD' | 'CREDIT' | 'DEBIT'
+
   let amountInCents: number | undefined
-  let method: 'PIX' | 'CASH' | undefined
+  let methodsProvided = false
+  const methods: Method[] = []
   let receivedAt: Date | undefined
   let note: string | undefined
   let receiptPath: string | null = null
@@ -35,7 +38,15 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
       }
     } else if (part.type === 'field') {
       if (part.fieldname === 'amountInCents' && part.value) amountInCents = Number(part.value)
-      if (part.fieldname === 'method' && part.value) method = String(part.value) as 'PIX' | 'CASH'
+      if (part.fieldname === 'methods') {
+        methodsProvided = true
+        methods.push(
+          ...String(part.value)
+            .split(',')
+            .map((m) => m.trim())
+            .filter(Boolean) as Method[],
+        )
+      }
       if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
       if (part.fieldname === 'note') note = String(part.value)
     }
@@ -47,7 +58,7 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
       userId: request.user.sub,
       receiptId,
       amountInCents,
-      method,
+      methods: methodsProvided ? methods : undefined,
       receivedAt,
       note,
       receiptPath,

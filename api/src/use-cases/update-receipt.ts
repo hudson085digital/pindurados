@@ -9,7 +9,7 @@ interface UpdateReceiptUseCaseRequest {
   userId: string
   receiptId: string
   amountInCents?: number
-  method?: ReceiptMethod
+  methods?: ReceiptMethod[]
   receivedAt?: Date
   note?: string | null
   /** Novo comprovante; se ausente, mantém o atual. */
@@ -36,7 +36,7 @@ export class UpdateReceiptUseCase {
     userId,
     receiptId,
     amountInCents,
-    method,
+    methods,
     receivedAt,
     note,
     receiptPath,
@@ -85,7 +85,7 @@ export class UpdateReceiptUseCase {
 
     const updated = await this.receiptsRepository.update(receiptId, {
       amountInCents: newAmount,
-      ...(method !== undefined ? { method } : {}),
+      ...(methods !== undefined ? { methods } : {}),
       ...(receivedAt !== undefined ? { receivedAt } : {}),
       ...(note !== undefined ? { note } : {}),
       ...(receiptPath ? { receiptPath } : {}),

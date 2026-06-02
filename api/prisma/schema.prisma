@@ -119,6 +119,9 @@ model Installment {
 enum ReceiptMethod {
   PIX
   CASH
+  CARD
+  CREDIT
+  DEBIT
 }
 
 // Recebimento: evento imutável de entrada de dinheiro num crediário (Sale).
@@ -126,10 +129,10 @@ enum ReceiptMethod {
 // (cascata, status, saldo) é DERIVADA — ver utils/allocate-receipts.ts.
 // Valor negativo = estorno (aponta para o recebimento original em reversesReceiptId).
 model Receipt {
-  id                String        @id @default(uuid())
-  amountInCents     Int           @map("amount_in_cents")
-  method            ReceiptMethod
-  receivedAt        DateTime      @map("received_at")
+  id                String          @id @default(uuid())
+  amountInCents     Int             @map("amount_in_cents")
+  methods           ReceiptMethod[]
+  receivedAt        DateTime        @map("received_at")
   note              String?
   receiptPath       String?       @map("receipt_path")
   reversesReceiptId String?       @map("reverses_receipt_id")

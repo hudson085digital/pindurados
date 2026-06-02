@@ -9,7 +9,7 @@ interface CreateReceiptUseCaseRequest {
   userId: string
   saleId: string
   amountInCents: number
-  method: ReceiptMethod
+  methods: ReceiptMethod[]
   receivedAt?: Date
   note?: string | null
   receiptPath?: string | null
@@ -35,7 +35,7 @@ export class CreateReceiptUseCase {
     userId,
     saleId,
     amountInCents,
-    method,
+    methods,
     receivedAt,
     note,
     receiptPath,
@@ -79,7 +79,7 @@ export class CreateReceiptUseCase {
     const receipt = await this.receiptsRepository.create({
       saleId,
       amountInCents,
-      method,
+      methods: methods ?? [],
       receivedAt: receivedAt ?? new Date(),
       note: note ?? null,
       receiptPath: receiptPath ?? null,

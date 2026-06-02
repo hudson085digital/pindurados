@@ -38,7 +38,7 @@ export class VoidReceiptUseCase {
     const receipt = await this.receiptsRepository.create({
       saleId: original.saleId,
       amountInCents: -original.amountInCents,
-      method: original.method,
+      methods: original.methods,
       receivedAt: new Date(),
       note: 'Estorno',
       reversesReceiptId: original.id,

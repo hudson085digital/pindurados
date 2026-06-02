@@ -55,7 +55,7 @@ describe('VoidReceiptUseCase', () => {
       userId: USER_ID,
       saleId: 'sale-1',
       amountInCents: 50000,
-      method: 'PIX',
+      methods: ['PIX'],
       receiptPath: 'comprovante.jpg',
     })
 
@@ -74,7 +74,7 @@ describe('VoidReceiptUseCase', () => {
       userId: USER_ID,
       saleId: 'sale-1',
       amountInCents: 50000,
-      method: 'PIX',
+      methods: ['PIX'],
       receiptPath: 'comprovante.jpg',
     })
     await sut.execute({ userId: USER_ID, receiptId: receipt.id })
@@ -89,7 +89,7 @@ describe('VoidReceiptUseCase', () => {
       userId: USER_ID,
       saleId: 'sale-1',
       amountInCents: 50000,
-      method: 'PIX',
+      methods: ['PIX'],
       receiptPath: 'comprovante.jpg',
     })
     const { receipt: reversal } = await sut.execute({ userId: USER_ID, receiptId: receipt.id })
@@ -104,7 +104,7 @@ describe('VoidReceiptUseCase', () => {
       userId: USER_ID,
       saleId: 'sale-1',
       amountInCents: 50000,
-      method: 'PIX',
+      methods: ['PIX'],
       receiptPath: 'comprovante.jpg',
     })
     await expect(() =>

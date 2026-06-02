@@ -1,6 +1,6 @@
 export type SaleType = 'AUTOMATIC' | 'MANUAL' | 'BY_TOTAL'
 export type InstallmentStatus = 'PAID' | 'PARTIAL' | 'OPEN'
-export type ReceiptMethod = 'PIX' | 'CASH'
+export type ReceiptMethod = 'PIX' | 'CASH' | 'CARD' | 'CREDIT' | 'DEBIT'
 export type PixKeyType = 'RANDOM' | 'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE'
 
 export interface PixKey {
@@ -16,7 +16,7 @@ export interface PixKey {
 export interface Receipt {
   id: string
   amountInCents: number
-  method: ReceiptMethod
+  methods: ReceiptMethod[]
   receivedAt: string
   note: string | null
   receiptPath: string | null

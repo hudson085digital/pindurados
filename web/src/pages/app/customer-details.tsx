@@ -136,7 +136,20 @@ export function CustomerDetails() {
 
 const METHOD_LABEL: Record<ReceiptMethod, string> = {
   PIX: 'Pix',
+  CARD: 'Cartão',
+  CREDIT: 'Crédito',
+  DEBIT: 'Débito',
   CASH: 'Dinheiro',
+}
+
+const ALL_METHODS: ReceiptMethod[] = ['PIX', 'CARD', 'CREDIT', 'DEBIT', 'CASH']
+
+function methodsLabel(methods: ReceiptMethod[]): string {
+  return methods.length ? methods.map((m) => METHOD_LABEL[m]).join(' + ') : 'sem forma'
+}
+
+function toggleMethod(list: ReceiptMethod[], m: ReceiptMethod): ReceiptMethod[] {
+  return list.includes(m) ? list.filter((x) => x !== m) : [...list, m]
 }
 
 function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
@@ -343,7 +356,7 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
 function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void }) {
   const [open, setOpen] = useState(false)
   const [amountCents, setAmountCents] = useState(0)
-  const [method, setMethod] = useState<ReceiptMethod>('PIX')
+  const [methods, setMethods] = useState<ReceiptMethod[]>([])
   const [receivedAt, setReceivedAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -355,7 +368,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   // Edição de um recebimento existente
   const [editId, setEditId] = useState<string | null>(null)
   const [editAmount, setEditAmount] = useState(0)
-  const [editMethod, setEditMethod] = useState<ReceiptMethod>('PIX')
+  const [editMethods, setEditMethods] = useState<ReceiptMethod[]>([])
   const [editDate, setEditDate] = useState('')
   const [editNote, setEditNote] = useState('')
   const [editFile, setEditFile] = useState<File | null>(null)
@@ -363,7 +376,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   function openEdit(r: Receipt) {
     setEditId(r.id)
     setEditAmount(r.amountInCents)
-    setEditMethod(r.method)
+    setEditMethods(r.methods)
     setEditDate(r.receivedAt.slice(0, 10))
     setEditNote(r.note ?? '')
     setEditFile(null)
@@ -377,7 +390,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
         saleId: sale.id,
         receiptId: editId,
         amountInCents: editAmount,
-        method: editMethod,
+        methods: editMethods,
         receivedAt: editDate,
         note: editNote,
         comprovante: editFile,
@@ -404,10 +417,11 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
       )
     }
     try {
-      await create({ saleId: sale.id, amountInCents: amountCents, method, comprovante: file, receivedAt, note })
+      await create({ saleId: sale.id, amountInCents: amountCents, methods, comprovante: file, receivedAt, note })
       toast.success('Recebimento registrado!')
       setOpen(false)
       setAmountCents(0)
+      setMethods([])
       setNote('')
       setFile(null)
       onChange()
@@ -455,16 +469,15 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 />
               </div>
               <div>
-                <Label>Forma</Label>
-                <div className="mt-1 flex gap-2">
-                  {(['PIX', 'CASH'] as ReceiptMethod[]).map((m) => (
+                <Label>Forma(s) de pagamento (opcional)</Label>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {ALL_METHODS.map((m) => (
                     <Button
                       key={m}
                       type="button"
                       size="sm"
-                      variant={method === m ? 'default' : 'outline'}
-                      className="flex-1"
-                      onClick={() => setMethod(m)}
+                      variant={methods.includes(m) ? 'default' : 'outline'}
+                      onClick={() => setMethods((prev) => toggleMethod(prev, m))}
                     >
                       {METHOD_LABEL[m]}
                     </Button>
@@ -516,7 +529,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 <span className={cn(isReversal && 'text-muted-foreground')}>
                   {isReversal ? '↩ Estorno ' : '✓ '}
                   <strong>{formatCurrency(Math.abs(r.amountInCents))}</strong> ·{' '}
-                  {METHOD_LABEL[r.method]} · {formatDate(r.receivedAt)}
+                  {methodsLabel(r.methods)} · {formatDate(r.receivedAt)}
                   {r.note && !isReversal && ` · ${r.note}`}
                   {r.receiptPath && (
                     <>
@@ -565,16 +578,15 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
             <CurrencyInput valueInCents={editAmount} onChangeCents={setEditAmount} />
           </div>
           <div>
-            <Label>Forma</Label>
-            <div className="mt-1 flex gap-2">
-              {(['PIX', 'CASH'] as ReceiptMethod[]).map((m) => (
+            <Label>Forma(s) de pagamento (opcional)</Label>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {ALL_METHODS.map((m) => (
                 <Button
                   key={m}
                   type="button"
                   size="sm"
-                  variant={editMethod === m ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setEditMethod(m)}
+                  variant={editMethods.includes(m) ? 'default' : 'outline'}
+                  onClick={() => setEditMethods((prev) => toggleMethod(prev, m))}
                 >
                   {METHOD_LABEL[m]}
                 </Button>

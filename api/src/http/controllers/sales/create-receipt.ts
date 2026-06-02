@@ -16,7 +16,7 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
   const { saleId } = paramsSchema.parse(request.params)
 
   let amountInCents: number | undefined
-  let method: string | undefined
+  const methods: string[] = []
   let receivedAt: Date | undefined
   let note: string | undefined
   let receiptPath: string | null = null
@@ -32,7 +32,10 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
       }
     } else if (part.type === 'field') {
       if (part.fieldname === 'amountInCents') amountInCents = Number(part.value)
-      if (part.fieldname === 'method') method = String(part.value)
+      // "methods" pode vir repetido (uma ou mais formas) ou separado por vírgula.
+      if (part.fieldname === 'methods' && part.value) {
+        methods.push(...String(part.value).split(',').map((m) => m.trim()).filter(Boolean))
+      }
       if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
       if (part.fieldname === 'note' && part.value) note = String(part.value)
     }
@@ -40,9 +43,9 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
 
   const bodySchema = z.object({
     amountInCents: z.number().int().positive(),
-    method: z.enum(['PIX', 'CASH']),
+    methods: z.array(z.enum(['PIX', 'CASH', 'CARD', 'CREDIT', 'DEBIT'])),
   })
-  const parsed = bodySchema.safeParse({ amountInCents, method })
+  const parsed = bodySchema.safeParse({ amountInCents, methods })
   if (!parsed.success) {
     return reply.status(400).send({ message: 'Dados inválidos.', issues: parsed.error.format() })
   }
@@ -53,7 +56,7 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
       userId: request.user.sub,
       saleId,
       amountInCents: parsed.data.amountInCents,
-      method: parsed.data.method,
+      methods: parsed.data.methods,
       receivedAt,
       note: note ?? null,
       receiptPath,

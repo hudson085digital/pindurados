@@ -44,7 +44,7 @@ beforeEach(() => {
 
 describe('UpdateReceiptUseCase', () => {
   it('edita valor, data e observação', async () => {
-    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, method: 'PIX', receiptPath: 'c.jpg' })
+    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, methods: ['PIX'], receiptPath: 'c.jpg' })
     const { receipt: updated } = await sut.execute({
       userId: USER,
       receiptId: receipt.id,
@@ -58,20 +58,20 @@ describe('UpdateReceiptUseCase', () => {
   })
 
   it('mantém o comprovante quando não envia novo arquivo', async () => {
-    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, method: 'PIX', receiptPath: 'orig.jpg' })
+    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, methods: ['PIX'], receiptPath: 'orig.jpg' })
     const { receipt: updated } = await sut.execute({ userId: USER, receiptId: receipt.id, amountInCents: 35000 })
     expect(updated.receiptPath).toBe('orig.jpg')
   })
 
   it('bloqueia valor acima do saldo', async () => {
-    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, method: 'PIX', receiptPath: 'c.jpg' })
+    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, methods: ['PIX'], receiptPath: 'c.jpg' })
     await expect(() =>
       sut.execute({ userId: USER, receiptId: receipt.id, amountInCents: 150000 }),
     ).rejects.toBeInstanceOf(BusinessRuleError)
   })
 
   it('não edita um estorno', async () => {
-    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, method: 'PIX', receiptPath: 'c.jpg' })
+    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, methods: ['PIX'], receiptPath: 'c.jpg' })
     const { receipt: reversal } = await voidUC.execute({ userId: USER, receiptId: receipt.id })
     await expect(() =>
       sut.execute({ userId: USER, receiptId: reversal.id, amountInCents: 100 }),
@@ -79,7 +79,7 @@ describe('UpdateReceiptUseCase', () => {
   })
 
   it('não edita recebimento já estornado', async () => {
-    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, method: 'PIX', receiptPath: 'c.jpg' })
+    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, methods: ['PIX'], receiptPath: 'c.jpg' })
     await voidUC.execute({ userId: USER, receiptId: receipt.id })
     await expect(() =>
       sut.execute({ userId: USER, receiptId: receipt.id, amountInCents: 100 }),
@@ -87,7 +87,7 @@ describe('UpdateReceiptUseCase', () => {
   })
 
   it('não edita recebimento de outro usuário', async () => {
-    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, method: 'PIX', receiptPath: 'c.jpg' })
+    const { receipt } = await create.execute({ userId: USER, saleId: 'sale-1', amountInCents: 30000, methods: ['PIX'], receiptPath: 'c.jpg' })
     await expect(() =>
       sut.execute({ userId: 'outro', receiptId: receipt.id, amountInCents: 100 }),
     ).rejects.toBeInstanceOf(ResourceNotFoundError)
