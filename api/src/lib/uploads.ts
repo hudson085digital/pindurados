@@ -16,8 +16,20 @@ mkdirSync(UPLOADS_DIR, { recursive: true })
 // --- Modo de armazenamento ---
 // Produção free: defina SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY para guardar os
 // comprovantes no Supabase Storage (não precisa de disco). Sem isso, usa disco local.
-// Remove barra(s) no fim para não gerar "//" no caminho (Invalid path...).
-const SUPABASE_URL = process.env.SUPABASE_URL?.trim().replace(/\/+$/, '')
+// Normaliza para SÓ a origem (https://<ref>.supabase.co), descartando qualquer
+// caminho/barra extra (ex.: se colaram o endpoint S3 .../storage/v1/s3) que causa
+// "Invalid path specified in request URL".
+function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  const trimmed = raw.trim()
+  try {
+    return new URL(trimmed).origin
+  } catch {
+    return trimmed.replace(/\/+$/, '')
+  }
+}
+
+const SUPABASE_URL = normalizeSupabaseUrl(process.env.SUPABASE_URL)
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 const BUCKET = (process.env.SUPABASE_BUCKET || 'comprovantes').trim()
 
@@ -63,6 +75,12 @@ export async function storeComprovante(buffer: Buffer, originalName: string): Pr
   if (supabase) {
     const { error } = await supabase.storage.from(BUCKET).upload(key, data, { contentType })
     if (error) {
+      console.error('[storage] upload falhou', {
+        bucket: BUCKET,
+        key,
+        supabaseUrl: SUPABASE_URL,
+        error,
+      })
       throw new BusinessRuleError(
         `Falha ao salvar o comprovante no Storage (bucket "${BUCKET}"): ${error.message}`,
       )
