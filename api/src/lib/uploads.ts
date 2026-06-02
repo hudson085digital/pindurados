@@ -3,8 +3,11 @@ import { unlink } from 'node:fs/promises'
 import { extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
 
-// Pasta onde os comprovantes enviados são gravados (api/uploads).
-export const UPLOADS_DIR = resolve(process.cwd(), 'uploads')
+// Pasta onde os comprovantes enviados são gravados.
+// Em produção, aponte UPLOADS_DIR para um disco persistente (ex.: /var/data/uploads).
+export const UPLOADS_DIR = process.env.UPLOADS_DIR
+  ? resolve(process.env.UPLOADS_DIR)
+  : resolve(process.cwd(), 'uploads')
 
 mkdirSync(UPLOADS_DIR, { recursive: true })
 

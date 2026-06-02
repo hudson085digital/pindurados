@@ -1,0 +1,29 @@
+# Deploy da API (Fastify) no Render — com disco persistente para os comprovantes.
+# Importe este repositório no Render (Blueprint) e ele cria o serviço a partir daqui.
+# Depois preencha DATABASE_URL e DIRECT_URL (do Supabase) no painel do serviço.
+services:
+  - type: web
+    name: pindurados-api
+    runtime: node
+    rootDir: api
+    # Disco persistente é necessário para os uploads (planos pagos do Render).
+    plan: starter
+    buildCommand: pnpm install && pnpm prisma:generate && pnpm build
+    preDeployCommand: pnpm exec prisma migrate deploy
+    startCommand: pnpm start
+    healthCheckPath: /health
+    disk:
+      name: uploads
+      mountPath: /var/data/uploads
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: UPLOADS_DIR
+        value: /var/data/uploads
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false # preencha no painel (Supabase — pooler 6543, ?pgbouncer=true)
+      - key: DIRECT_URL
+        sync: false # preencha no painel (Supabase — direct/session 5432)

@@ -1,66 +1,46 @@
 # Deploy — Pindurados
 
-Arquitetura recomendada:
+Arquitetura: **DB → Supabase** · **API (Fastify) → Render** (disco persistente) ·
+**Web (Vite/React) → Vercel**.
 
-- **Banco de dados** → Supabase (PostgreSQL)
-- **Web (Vite/React)** → Vercel
-- **API (Fastify/Node)** → Render ou Railway
-
-> ⚠️ Sobre a API na Vercel: a API grava os comprovantes em disco (`uploads/`) e os
-> serve em `/comprovantes`. Funções serverless (Vercel) **não têm disco persistente**,
-> então os arquivos somem entre requisições. Por isso a API deve ir para um host com
-> disco persistente (**Render**/**Railway**). Alternativa futura: guardar os
-> comprovantes no **Supabase Storage** (aí a API pode ir para serverless também).
-
----
+## 0. Subir o repositório no GitHub (uma vez)
+Render e Vercel fazem deploy a partir do GitHub.
+```bash
+git remote add origin https://github.com/SEU_USUARIO/pindurados.git
+git push -u origin 001-recebimento-parcial   # ou faça merge na main e push
+```
 
 ## 1. Banco no Supabase
+1. Crie um projeto em https://supabase.com (guarde a **Database password**).
+2. Botão **Connect** (topo do painel) → aba **ORMs** → **Prisma**. Copie:
+   - `DATABASE_URL` — Transaction pooler (**6543**, com `?pgbouncer=true`)
+   - `DIRECT_URL` — Session/Direct (**5432**)
+   (ou em **Settings → Database → Connection string**). Troque `[YOUR-PASSWORD]`.
 
-1. Crie um projeto em https://supabase.com.
-2. Em **Project Settings → Database → Connection string**, copie:
-   - **Pooled** (porta 6543) → vira `DATABASE_URL` (adicione `?pgbouncer=true`).
-   - **Direct** (porta 5432) → vira `DIRECT_URL` (usada só nas migrations).
-3. Rode as migrations apontando para o Supabase (localmente, uma vez):
-   ```bash
-   cd api
-   DATABASE_URL="<pooled>" DIRECT_URL="<direct>" pnpm exec prisma migrate deploy
-   DATABASE_URL="<pooled>" DIRECT_URL="<direct>" pnpm db:seed   # opcional: 1º usuário
-   ```
+> As migrations rodam sozinhas no deploy do Render (`preDeployCommand`). Para rodar do
+> seu PC: `DATABASE_URL=... DIRECT_URL=... pnpm -C api exec prisma migrate deploy`.
 
-## 2. API no Render (ou Railway)
-
-- Novo **Web Service** apontando para a pasta `api/`.
-- Build: `pnpm install && pnpm prisma:generate && pnpm build`
-- Start: `pnpm start`
-- Disco persistente montado em `api/uploads` (para os comprovantes).
-- Variáveis de ambiente:
-  ```
-  NODE_ENV=production
-  PORT=3333            # ou a porta que o host expõe
-  JWT_SECRET=<um-segredo-forte>
-  DATABASE_URL=<pooled do Supabase>
-  DIRECT_URL=<direct do Supabase>
-  ```
-- Anote a URL pública (ex.: `https://pindurados-api.onrender.com`).
+## 2. API no Render (via render.yaml)
+1. Render → **New → Blueprint** → conecte o repositório (ele lê o `render.yaml`).
+2. Cria o serviço `pindurados-api` com **disco** em `/var/data/uploads`, build,
+   migrations (preDeploy) e `JWT_SECRET` gerado.
+3. Preencha as envs `sync: false`: **DATABASE_URL** e **DIRECT_URL** (passo 1).
+4. Deploy. Anote a URL (ex.: `https://pindurados-api.onrender.com`). Health: `GET /health`.
+   - Disco persistente exige plano pago (Starter). No Railway, use um **Volume**.
 
 ## 3. Web na Vercel
+1. Vercel → **Add New → Project** → importe o repo; **Root Directory** = `web/`.
+2. `web/vercel.json` já cuida do build Vite + rewrite SPA.
+3. Env do projeto: `VITE_API_URL=https://pindurados-api.onrender.com`.
+4. Deploy → abra a URL, crie a conta em **/sign-up** e use.
 
-- Importe o repositório; **Root Directory** = `web/`.
-- A Vercel detecta Vite; `web/vercel.json` já configura build, output e o rewrite SPA.
-- Variável de ambiente do projeto:
-  ```
-  VITE_API_URL=https://pindurados-api.onrender.com
-  ```
-- Deploy. Abra a URL, crie sua conta em **/sign-up** e use.
-
-## 4. CORS
-
-A API hoje aceita qualquer origem (`origin: true` com credenciais). Para restringir à
-origem da Vercel, ajuste `app.register(fastifyCors, …)` em `api/src/app.ts` lendo de uma
-env (ex.: `WEB_ORIGIN`).
+## 4. CORS (opcional)
+Hoje a API aceita qualquer origem (`origin: true`). Para restringir à URL da Vercel,
+ajuste `fastifyCors` em `api/src/app.ts` lendo de uma env (ex.: `WEB_ORIGIN`).
 
 ## Checklist
-- [ ] Supabase criado e migrations aplicadas (`migrate deploy`)
-- [ ] API no Render com disco em `uploads/` e envs setadas
-- [ ] Web na Vercel com `VITE_API_URL` apontando para a API
-- [ ] Cadastro (`/sign-up`) funcionando e dados isolados por usuário
+- [ ] Repo no GitHub
+- [ ] Supabase criado; `DATABASE_URL`/`DIRECT_URL` em mãos
+- [ ] Render via Blueprint + envs preenchidas + disco em `/var/data/uploads`
+- [ ] Vercel com `VITE_API_URL` apontando para a API
+- [ ] `/sign-up` funcionando; dados isolados por usuário

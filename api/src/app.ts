@@ -42,6 +42,9 @@ app.register(fastifyStatic, {
   prefix: '/comprovantes/',
 })
 
+// Health check (público) — usado pelo monitoramento do host.
+app.get('/health', () => ({ status: 'ok' }))
+
 // Rotas
 app.register(usersRoutes)
 app.register(customersRoutes)
