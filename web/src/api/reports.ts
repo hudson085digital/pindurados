@@ -16,3 +16,33 @@ export async function getSummary() {
   const response = await api.get<Summary>('/reports/summary')
   return response.data
 }
+
+export interface Dashboard {
+  totals: {
+    soldInCents: number
+    receivedInCents: number
+    toReceiveInCents: number
+    costInCents: number
+    profitInCents: number
+    salesCount: number
+    settledSalesCount: number
+    overdueInstallments: number
+    lateInstallments: number
+    customersWithDebt: number
+  }
+  receivedByMonth: { month: string; amountInCents: number }[]
+  byMethod: { method: string; amountInCents: number }[]
+  topDebtors: { customerId: string; name: string; balanceInCents: number }[]
+  upcoming: {
+    customerName: string
+    number: number
+    dueDate: string
+    balanceInCents: number
+    overdue: boolean
+  }[]
+}
+
+export async function getDashboard() {
+  const response = await api.get<Dashboard>('/reports/dashboard')
+  return response.data
+}

@@ -41,6 +41,7 @@ export function CustomerDetails() {
     queryClient.invalidateQueries({ queryKey: ['customer', id] })
     queryClient.invalidateQueries({ queryKey: ['customers'] })
     queryClient.invalidateQueries({ queryKey: ['summary'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
   }
 
   const { mutateAsync: removeCustomer } = useMutation({ mutationFn: deleteCustomer })

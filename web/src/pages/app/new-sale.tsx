@@ -206,6 +206,7 @@ export function NewSale() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
       queryClient.invalidateQueries({ queryKey: ['summary'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 
