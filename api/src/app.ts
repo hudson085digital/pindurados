@@ -12,6 +12,7 @@ import { customersRoutes } from '@/http/controllers/customers/routes'
 import { salesRoutes } from '@/http/controllers/sales/routes'
 import { installmentsRoutes } from '@/http/controllers/installments/routes'
 import { reportsRoutes } from '@/http/controllers/reports/routes'
+import { pixKeysRoutes } from '@/http/controllers/pix-keys/routes'
 
 export const app = fastify()
 
@@ -46,6 +47,7 @@ app.register(customersRoutes)
 app.register(salesRoutes)
 app.register(installmentsRoutes)
 app.register(reportsRoutes)
+app.register(pixKeysRoutes)
 
 // Tratamento global de erros
 app.setErrorHandler((error, _request, reply) => {

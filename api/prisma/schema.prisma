@@ -24,17 +24,43 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
 
   customers Customer[]
+  pixKeys   PixKey[]
 
   @@map("users")
 }
 
+enum PixKeyType {
+  RANDOM
+  CPF
+  CNPJ
+  EMAIL
+  PHONE
+}
+
+// Chave Pix do dono do negócio (usada para receber e nas cobranças).
+model PixKey {
+  id         String     @id @default(uuid())
+  type       PixKeyType
+  key        String
+  bankName   String     @map("bank_name")
+  holderName String     @map("holder_name")
+  isDefault  Boolean    @default(false) @map("is_default")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("pix_keys")
+}
+
 // Devedor (quem deve)
 model Customer {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String?
-  note      String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  name         String
+  phone        String?
+  note         String?
+  autoReminder Boolean  @default(false) @map("auto_reminder")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

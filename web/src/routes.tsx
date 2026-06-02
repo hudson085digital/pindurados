@@ -7,6 +7,7 @@ import { Dashboard } from './pages/app/dashboard'
 import { Customers } from './pages/app/customers'
 import { CustomerDetails } from './pages/app/customer-details'
 import { NewSale } from './pages/app/new-sale'
+import { PixKeys } from './pages/app/pix-keys'
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { path: '/devedores', element: <Customers /> },
       { path: '/devedores/:id', element: <CustomerDetails /> },
       { path: '/nova-venda', element: <NewSale /> },
+      { path: '/chaves-pix', element: <PixKeys /> },
     ],
   },
   {

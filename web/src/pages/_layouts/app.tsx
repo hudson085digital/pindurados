@@ -1,11 +1,12 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, PlusCircle, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, PlusCircle, KeyRound, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { to: '/', label: 'Resumo', icon: LayoutDashboard, end: true },
   { to: '/devedores', label: 'Devedores', icon: Users, end: false },
   { to: '/nova-venda', label: 'Nova venda', icon: PlusCircle, end: false },
+  { to: '/chaves-pix', label: 'Pix', icon: KeyRound, end: false },
 ]
 
 export function AppLayout() {
