@@ -27,14 +27,15 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
   const methodAmountsInCents: number[] = []
   let receivedAt: Date | undefined
   let note: string | undefined
-  let receiptPath: string | null = null
+  const paths: string[] = []
+  let attachmentMethods: (Method | null)[] = []
 
   for await (const part of request.parts()) {
     if (part.type === 'file' && part.fieldname === 'comprovante') {
       if (part.filename) {
         const filename = `${randomUUID()}${extname(part.filename)}`
         await pipeline(part.file, createWriteStream(join(UPLOADS_DIR, filename)))
-        receiptPath = filename
+        paths.push(filename)
       } else {
         part.file.resume()
       }
@@ -55,10 +56,18 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
           ...String(part.value).split(',').map((n) => Number(n.trim())).filter((n) => !Number.isNaN(n)),
         )
       }
+      if (part.fieldname === 'comprovanteMethods') {
+        attachmentMethods = String(part.value).split(',').map((m) => {
+          const v = m.trim()
+          return v ? (v as Method) : null
+        })
+      }
       if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
       if (part.fieldname === 'note') note = String(part.value)
     }
   }
+
+  const addAttachments = paths.map((path, i) => ({ path, method: attachmentMethods[i] ?? null }))
 
   try {
     const update = makeUpdateReceiptUseCase()
@@ -68,9 +77,9 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
       amountInCents,
       methods: methodsProvided ? methods : undefined,
       methodAmountsInCents: methodAmountsProvided ? methodAmountsInCents : undefined,
+      addAttachments,
       receivedAt,
       note,
-      receiptPath,
     })
     return reply.status(200).send({ receipt })
   } catch (error) {

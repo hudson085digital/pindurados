@@ -1,14 +1,25 @@
 import { api } from '@/lib/axios'
 import { ReceiptMethod } from './types'
 
+// Cada comprovante pode ser marcado (opcional) com a forma de pagamento.
+export interface AttachmentUpload {
+  file: File
+  method?: ReceiptMethod | null
+}
+
 export interface CreateReceiptBody {
   saleId: string
   amountInCents: number
   methods: ReceiptMethod[]
   methodAmountsInCents?: number[]
-  comprovante: File
+  attachments: AttachmentUpload[]
   receivedAt?: string
   note?: string
+}
+
+function appendAttachments(form: FormData, attachments: AttachmentUpload[]) {
+  attachments.forEach((a) => form.append('comprovante', a.file))
+  form.append('comprovanteMethods', attachments.map((a) => a.method ?? '').join(','))
 }
 
 export async function createReceipt({
@@ -16,7 +27,7 @@ export async function createReceipt({
   amountInCents,
   methods,
   methodAmountsInCents,
-  comprovante,
+  attachments,
   receivedAt,
   note,
 }: CreateReceiptBody) {
@@ -26,7 +37,7 @@ export async function createReceipt({
   if (methodAmountsInCents && methodAmountsInCents.length) {
     form.append('methodAmounts', methodAmountsInCents.join(','))
   }
-  form.append('comprovante', comprovante)
+  appendAttachments(form, attachments)
   if (receivedAt) form.append('receivedAt', receivedAt)
   if (note) form.append('note', note)
 
@@ -41,7 +52,7 @@ export interface UpdateReceiptBody {
   methodAmountsInCents?: number[]
   receivedAt?: string
   note?: string
-  comprovante?: File | null
+  addAttachments?: AttachmentUpload[]
 }
 
 export async function updateReceipt({
@@ -52,7 +63,7 @@ export async function updateReceipt({
   methodAmountsInCents,
   receivedAt,
   note,
-  comprovante,
+  addAttachments,
 }: UpdateReceiptBody) {
   const form = new FormData()
   if (amountInCents !== undefined) form.append('amountInCents', String(amountInCents))
@@ -61,7 +72,7 @@ export async function updateReceipt({
   if (methodAmountsInCents !== undefined) form.append('methodAmounts', methodAmountsInCents.join(','))
   if (receivedAt) form.append('receivedAt', receivedAt)
   if (note !== undefined) form.append('note', note)
-  if (comprovante) form.append('comprovante', comprovante)
+  if (addAttachments && addAttachments.length) appendAttachments(form, addAttachments)
 
   await api.put(`/sales/${saleId}/receipts/${receiptId}`, form)
 }

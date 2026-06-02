@@ -1,10 +1,27 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { ReceiptsRepository } from '../receipts-repository'
+import { ReceiptsRepository, AttachmentInput } from '../receipts-repository'
 
 export class PrismaReceiptsRepository implements ReceiptsRepository {
-  async create(data: Prisma.ReceiptUncheckedCreateInput) {
-    return prisma.receipt.create({ data })
+  async create(data: Prisma.ReceiptUncheckedCreateInput, attachments?: AttachmentInput[]) {
+    const receipt = await prisma.receipt.create({ data })
+    if (attachments?.length) {
+      await prisma.receiptAttachment.createMany({
+        data: attachments.map((a) => ({
+          receiptId: receipt.id,
+          path: a.path,
+          method: a.method ?? null,
+        })),
+      })
+    }
+    return receipt
+  }
+
+  async addAttachments(receiptId: string, attachments: AttachmentInput[]) {
+    if (!attachments.length) return
+    await prisma.receiptAttachment.createMany({
+      data: attachments.map((a) => ({ receiptId, path: a.path, method: a.method ?? null })),
+    })
   }
 
   async findById(id: string) {

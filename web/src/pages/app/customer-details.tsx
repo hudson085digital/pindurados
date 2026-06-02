@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { ChevronLeft, Undo2, Send, Bell, Pencil } from 'lucide-react'
 import { getCustomerDetails, deleteCustomer, updateCustomer } from '@/api/customers'
 import { deleteSale, getChargeMessage, updateSale } from '@/api/sales'
-import { createReceipt, updateReceipt, voidReceipt } from '@/api/receipts'
+import { createReceipt, updateReceipt, voidReceipt, AttachmentUpload } from '@/api/receipts'
 import {
   markInstallmentLate,
   unmarkInstallmentLate,
@@ -156,6 +156,15 @@ function methodsLabel(methods: ReceiptMethod[], amounts: number[] = []): string 
 
 function toggleMethod(list: ReceiptMethod[], m: ReceiptMethod): ReceiptMethod[] {
   return list.includes(m) ? list.filter((x) => x !== m) : [...list, m]
+}
+
+// Linha de comprovante no formulário: arquivo + forma (opcional).
+type AttachRow = { file: File | null; method: ReceiptMethod | '' }
+
+function attachUploads(rows: AttachRow[]): AttachmentUpload[] {
+  return rows
+    .filter((r) => r.file)
+    .map((r) => ({ file: r.file as File, method: r.method || null }))
 }
 
 function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
@@ -400,7 +409,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   const [methodAmounts, setMethodAmounts] = useState<Record<string, number>>({})
   const [receivedAt, setReceivedAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
-  const [file, setFile] = useState<File | null>(null)
+  const [attachRows, setAttachRows] = useState<AttachRow[]>([{ file: null, method: '' }])
 
   const { mutateAsync: create, isPending } = useMutation({ mutationFn: createReceipt })
   const { mutateAsync: revert } = useMutation({ mutationFn: voidReceipt })
@@ -413,7 +422,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   const [editMethodAmounts, setEditMethodAmounts] = useState<Record<string, number>>({})
   const [editDate, setEditDate] = useState('')
   const [editNote, setEditNote] = useState('')
-  const [editFile, setEditFile] = useState<File | null>(null)
+  const [editAttachRows, setEditAttachRows] = useState<AttachRow[]>([])
 
   function openEdit(r: Receipt) {
     setEditId(r.id)
@@ -424,7 +433,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
     setEditMethodAmounts(amts)
     setEditDate(r.receivedAt.slice(0, 10))
     setEditNote(r.note ?? '')
-    setEditFile(null)
+    setEditAttachRows([])
   }
 
   async function handleEdit() {
@@ -446,7 +455,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
         methodAmountsInCents,
         receivedAt: editDate,
         note: editNote,
-        comprovante: editFile,
+        addAttachments: attachUploads(editAttachRows),
       })
       toast.success('Recebimento atualizado.')
       setEditId(null)
@@ -463,7 +472,8 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
 
   async function handleCreate() {
     if (!amountCents) return toast.error('Informe um valor.')
-    if (!file) return toast.error('Anexe o comprovante de pagamento.')
+    const uploads = attachUploads(attachRows)
+    if (!uploads.length) return toast.error('Anexe o comprovante de pagamento.')
     if (amountCents > sale.balanceInCents) {
       return toast.error(
         `Valor acima do saldo. Receba no máximo ${formatCurrency(sale.balanceInCents)}.`,
@@ -477,14 +487,14 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
       }
     }
     try {
-      await create({ saleId: sale.id, amountInCents: amountCents, methods, methodAmountsInCents, comprovante: file, receivedAt, note })
+      await create({ saleId: sale.id, amountInCents: amountCents, methods, methodAmountsInCents, attachments: uploads, receivedAt, note })
       toast.success('Recebimento registrado!')
       setOpen(false)
       setAmountCents(0)
       setMethods([])
       setMethodAmounts({})
       setNote('')
-      setFile(null)
+      setAttachRows([{ file: null, method: '' }])
       onChange()
     } catch {
       toast.error('Erro ao registrar recebimento.')
@@ -560,12 +570,8 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 />
               </div>
               <div>
-                <Label>Comprovante (foto/PDF) *</Label>
-                <Input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
+                <Label>Comprovantes (foto/PDF) *</Label>
+                <AttachmentRows rows={attachRows} setRows={setAttachRows} />
               </div>
               <div>
                 <Label>Observação</Label>
@@ -598,7 +604,20 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                   <strong>{formatCurrency(Math.abs(r.amountInCents))}</strong> ·{' '}
                   {methodsLabel(r.methods, r.methodAmountsInCents)} · {formatDate(r.receivedAt)}
                   {r.note && !isReversal && ` · ${r.note}`}
-                  {r.receiptPath && (
+                  {r.attachments.map((a, i) => (
+                    <span key={a.id}>
+                      {' · '}
+                      <a
+                        className="text-primary"
+                        href={`${import.meta.env.VITE_API_URL}/comprovantes/${a.path}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {a.method ? METHOD_LABEL[a.method] : `comprovante ${i + 1}`}
+                      </a>
+                    </span>
+                  ))}
+                  {r.receiptPath && r.attachments.length === 0 && (
                     <>
                       {' · '}
                       <a
@@ -671,14 +690,10 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
             <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
           </div>
           <div>
-            <Label>Trocar comprovante (opcional)</Label>
-            <Input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setEditFile(e.target.files?.[0] ?? null)}
-            />
+            <Label>Adicionar comprovantes (opcional)</Label>
+            <AttachmentRows rows={editAttachRows} setRows={setEditAttachRows} allowEmpty />
             <p className="mt-1 text-xs text-muted-foreground">
-              Deixe vazio para manter o comprovante atual.
+              Mantém os comprovantes atuais e anexa os novos.
             </p>
           </div>
           <div>
@@ -841,6 +856,67 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function AttachmentRows({
+  rows,
+  setRows,
+  allowEmpty = false,
+}: {
+  rows: AttachRow[]
+  setRows: React.Dispatch<React.SetStateAction<AttachRow[]>>
+  allowEmpty?: boolean
+}) {
+  return (
+    <div className="space-y-2">
+      {rows.map((row, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <Input
+            type="file"
+            accept="image/*,application/pdf"
+            className="flex-1"
+            onChange={(e) =>
+              setRows((prev) => prev.map((r, j) => (j === i ? { ...r, file: e.target.files?.[0] ?? null } : r)))
+            }
+          />
+          <select
+            className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+            value={row.method}
+            onChange={(e) =>
+              setRows((prev) =>
+                prev.map((r, j) => (j === i ? { ...r, method: e.target.value as ReceiptMethod | '' } : r)),
+              )
+            }
+          >
+            <option value="">forma…</option>
+            {ALL_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {METHOD_LABEL[m]}
+              </option>
+            ))}
+          </select>
+          {(rows.length > 1 || allowEmpty) && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => setRows((prev) => prev.filter((_, j) => j !== i))}
+            >
+              <Undo2 className="h-4 w-4 text-destructive" />
+            </Button>
+          )}
+        </div>
+      ))}
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => setRows((prev) => [...prev, { file: null, method: '' }])}
+      >
+        + comprovante
+      </Button>
     </div>
   )
 }

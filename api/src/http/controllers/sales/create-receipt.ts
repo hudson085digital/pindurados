@@ -15,33 +15,41 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
   const paramsSchema = z.object({ saleId: z.string().uuid() })
   const { saleId } = paramsSchema.parse(request.params)
 
+  type Method = 'PIX' | 'CASH' | 'CARD' | 'CREDIT' | 'DEBIT'
+
   let amountInCents: number | undefined
   const methods: string[] = []
   const methodAmountsInCents: number[] = []
   let receivedAt: Date | undefined
   let note: string | undefined
-  let receiptPath: string | null = null
+  const paths: string[] = []
+  let attachmentMethods: (Method | null)[] = []
 
   for await (const part of request.parts()) {
     if (part.type === 'file' && part.fieldname === 'comprovante') {
       if (part.filename) {
         const filename = `${randomUUID()}${extname(part.filename)}`
         await pipeline(part.file, createWriteStream(join(UPLOADS_DIR, filename)))
-        receiptPath = filename
+        paths.push(filename)
       } else {
         part.file.resume()
       }
     } else if (part.type === 'field') {
       if (part.fieldname === 'amountInCents') amountInCents = Number(part.value)
-      // "methods" pode vir repetido (uma ou mais formas) ou separado por vírgula.
       if (part.fieldname === 'methods' && part.value) {
         methods.push(...String(part.value).split(',').map((m) => m.trim()).filter(Boolean))
       }
-      // "methodAmounts" alinhado a methods (valor por forma).
       if (part.fieldname === 'methodAmounts' && part.value) {
         methodAmountsInCents.push(
           ...String(part.value).split(',').map((n) => Number(n.trim())).filter((n) => !Number.isNaN(n)),
         )
+      }
+      // formas dos comprovantes, alinhadas à ordem dos arquivos ("" = sem forma).
+      if (part.fieldname === 'comprovanteMethods') {
+        attachmentMethods = String(part.value).split(',').map((m) => {
+          const v = m.trim()
+          return v ? (v as Method) : null
+        })
       }
       if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
       if (part.fieldname === 'note' && part.value) note = String(part.value)
@@ -57,6 +65,8 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
     return reply.status(400).send({ message: 'Dados inválidos.', issues: parsed.error.format() })
   }
 
+  const attachments = paths.map((path, i) => ({ path, method: attachmentMethods[i] ?? null }))
+
   try {
     const createReceipt = makeCreateReceiptUseCase()
     const { receipt } = await createReceipt.execute({
@@ -67,7 +77,7 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
       methodAmountsInCents,
       receivedAt,
       note: note ?? null,
-      receiptPath,
+      attachments,
     })
     return reply.status(201).send({ receipt })
   } catch (error) {

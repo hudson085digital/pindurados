@@ -17,12 +17,12 @@ function inst(number: number, amountInCents: number): Installment {
   }
 }
 
-function receipt(amountInCents: number, createdAt: Date): Receipt {
+function receipt(amountInCents: number, createdAt: Date) {
   return {
     id: `r-${createdAt.getTime()}-${amountInCents}`,
     amountInCents,
-    methods: ['PIX'],
-    methodAmountsInCents: [],
+    methods: ['PIX'] as Receipt['methods'],
+    methodAmountsInCents: [] as number[],
     receivedAt: createdAt,
     note: null,
     receiptPath: null,
@@ -30,6 +30,7 @@ function receipt(amountInCents: number, createdAt: Date): Receipt {
     createdBy: null,
     createdAt,
     saleId: 'sale-1',
+    attachments: [] as never[],
   }
 }
 

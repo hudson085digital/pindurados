@@ -144,5 +144,21 @@ model Receipt {
   saleId String @map("sale_id")
   sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
+  attachments ReceiptAttachment[]
+
   @@map("receipts")
+}
+
+// Comprovante de um recebimento; podem ser vários, cada um marcado (opcional)
+// com a forma de pagamento correspondente.
+model ReceiptAttachment {
+  id        String         @id @default(uuid())
+  path      String
+  method    ReceiptMethod?
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  receiptId String  @map("receipt_id")
+  receipt   Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@map("receipt_attachments")
 }

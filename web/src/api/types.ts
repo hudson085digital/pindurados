@@ -12,12 +12,19 @@ export interface PixKey {
   isDefault: boolean
 }
 
+export interface ReceiptAttachment {
+  id: string
+  path: string
+  method: ReceiptMethod | null
+}
+
 // Recebimento no nível da venda (crediário). Valor negativo = estorno.
 export interface Receipt {
   id: string
   amountInCents: number
   methods: ReceiptMethod[]
   methodAmountsInCents: number[]
+  attachments: ReceiptAttachment[]
   receivedAt: string
   note: string | null
   receiptPath: string | null

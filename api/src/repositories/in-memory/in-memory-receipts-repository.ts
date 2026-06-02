@@ -1,6 +1,6 @@
 import { Prisma, Receipt } from '@prisma/client'
 import { randomUUID } from 'node:crypto'
-import { ReceiptsRepository, ReceiptWithSale } from '../receipts-repository'
+import { ReceiptsRepository, ReceiptWithSale, AttachmentInput } from '../receipts-repository'
 import { InMemorySalesRepository } from './in-memory-sales-repository'
 
 // Implementação em memória. Recebe o repositório de vendas para manter a lista
@@ -10,9 +10,21 @@ export class InMemoryReceiptsRepository implements ReceiptsRepository {
 
   constructor(private salesRepository?: InMemorySalesRepository) {}
 
-  async create(data: Prisma.ReceiptUncheckedCreateInput): Promise<Receipt> {
-    const receipt: Receipt = {
-      id: data.id ?? randomUUID(),
+  async create(
+    data: Prisma.ReceiptUncheckedCreateInput,
+    attachmentsInput: AttachmentInput[] = [],
+  ): Promise<Receipt> {
+    const id = data.id ?? randomUUID()
+    const attachments = attachmentsInput.map((a) => ({
+      id: randomUUID(),
+      path: a.path,
+      method: a.method ?? null,
+      createdAt: new Date(),
+      receiptId: id,
+    }))
+
+    const receipt = {
+      id,
       amountInCents: data.amountInCents,
       methods: (data.methods as Receipt['methods']) ?? [],
       methodAmountsInCents: (data.methodAmountsInCents as number[]) ?? [],
@@ -23,7 +35,9 @@ export class InMemoryReceiptsRepository implements ReceiptsRepository {
       createdBy: data.createdBy ?? null,
       createdAt: new Date(),
       saleId: data.saleId,
-    }
+      attachments,
+    } as Receipt & { attachments: typeof attachments }
+
     this.items.push(receipt)
 
     const sale = this.salesRepository?.items.find((s) => s.id === receipt.saleId)
@@ -52,6 +66,23 @@ export class InMemoryReceiptsRepository implements ReceiptsRepository {
     if (!sale) return null
 
     return { ...receipt, sale } as ReceiptWithSale
+  }
+
+  async addAttachments(receiptId: string, attachments: AttachmentInput[]): Promise<void> {
+    const receipt = this.items.find((r) => r.id === receiptId) as
+      | (Receipt & { attachments: { id: string; path: string; method: Receipt['methods'][number] | null; createdAt: Date; receiptId: string }[] })
+      | undefined
+    if (!receipt) return
+    receipt.attachments = receipt.attachments ?? []
+    attachments.forEach((a) =>
+      receipt.attachments.push({
+        id: randomUUID(),
+        path: a.path,
+        method: a.method ?? null,
+        createdAt: new Date(),
+        receiptId,
+      }),
+    )
   }
 
   async findReversalOf(receiptId: string): Promise<Receipt | null> {

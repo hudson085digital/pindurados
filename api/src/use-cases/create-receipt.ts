@@ -1,6 +1,6 @@
 import { Receipt, ReceiptMethod } from '@prisma/client'
 import { SalesRepository } from '@/repositories/sales-repository'
-import { ReceiptsRepository } from '@/repositories/receipts-repository'
+import { ReceiptsRepository, AttachmentInput } from '@/repositories/receipts-repository'
 import { allocateReceipts, sumReceipts } from '@/utils/allocate-receipts'
 import { ResourceNotFoundError } from './errors/resource-not-found-error'
 import { BusinessRuleError } from './errors/business-rule-error'
@@ -15,6 +15,8 @@ interface CreateReceiptUseCaseRequest {
   receivedAt?: Date
   note?: string | null
   receiptPath?: string | null
+  /** Comprovantes (1+), cada um com forma opcional. */
+  attachments?: AttachmentInput[]
 }
 
 interface CreateReceiptUseCaseResponse {
@@ -60,6 +62,7 @@ export class CreateReceiptUseCase {
     receivedAt,
     note,
     receiptPath,
+    attachments,
   }: CreateReceiptUseCaseRequest): Promise<CreateReceiptUseCaseResponse> {
     const sale = await this.salesRepository.findById(saleId)
     if (!sale || sale.customer.userId !== userId) {
@@ -70,8 +73,8 @@ export class CreateReceiptUseCase {
       throw new BusinessRuleError('Informe um valor de recebimento maior que zero.')
     }
 
-    // Comprovante de pagamento é obrigatório (spec 005).
-    if (!receiptPath) {
+    // Comprovante de pagamento é obrigatório (spec 005): ao menos um (legado ou anexo).
+    if (!receiptPath && (!attachments || attachments.length === 0)) {
       throw new BusinessRuleError('Anexe o comprovante de pagamento.')
     }
 
@@ -99,16 +102,19 @@ export class CreateReceiptUseCase {
 
     const methodAmounts = resolveMethodAmounts(methods ?? [], amountInCents, methodAmountsInCents)
 
-    const receipt = await this.receiptsRepository.create({
-      saleId,
-      amountInCents,
-      methods: methods ?? [],
-      methodAmountsInCents: methodAmounts,
-      receivedAt: receivedAt ?? new Date(),
-      note: note ?? null,
-      receiptPath: receiptPath ?? null,
-      createdBy: userId,
-    })
+    const receipt = await this.receiptsRepository.create(
+      {
+        saleId,
+        amountInCents,
+        methods: methods ?? [],
+        methodAmountsInCents: methodAmounts,
+        receivedAt: receivedAt ?? new Date(),
+        note: note ?? null,
+        receiptPath: receiptPath ?? null,
+        createdBy: userId,
+      },
+      attachments,
+    )
 
     return { receipt }
   }

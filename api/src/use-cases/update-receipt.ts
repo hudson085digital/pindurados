@@ -2,6 +2,7 @@ import { Receipt, ReceiptMethod } from '@prisma/client'
 import { SalesRepository } from '@/repositories/sales-repository'
 import { ReceiptsRepository } from '@/repositories/receipts-repository'
 import { allocateReceipts, sumReceipts } from '@/utils/allocate-receipts'
+import { AttachmentInput } from '@/repositories/receipts-repository'
 import { resolveMethodAmounts } from './create-receipt'
 import { ResourceNotFoundError } from './errors/resource-not-found-error'
 import { BusinessRuleError } from './errors/business-rule-error'
@@ -16,6 +17,8 @@ interface UpdateReceiptUseCaseRequest {
   note?: string | null
   /** Novo comprovante; se ausente, mantém o atual. */
   receiptPath?: string | null
+  /** Comprovantes adicionais a anexar (mantém os existentes). */
+  addAttachments?: AttachmentInput[]
 }
 
 interface UpdateReceiptUseCaseResponse {
@@ -43,6 +46,7 @@ export class UpdateReceiptUseCase {
     receivedAt,
     note,
     receiptPath,
+    addAttachments,
   }: UpdateReceiptUseCaseRequest): Promise<UpdateReceiptUseCaseResponse> {
     const receipt = await this.receiptsRepository.findById(receiptId)
     if (!receipt || receipt.sale.customer.userId !== userId) {
@@ -102,6 +106,10 @@ export class UpdateReceiptUseCase {
       ...(note !== undefined ? { note } : {}),
       ...(receiptPath ? { receiptPath } : {}),
     })
+
+    if (addAttachments && addAttachments.length) {
+      await this.receiptsRepository.addAttachments(receiptId, addAttachments)
+    }
 
     return { receipt: updated }
   }

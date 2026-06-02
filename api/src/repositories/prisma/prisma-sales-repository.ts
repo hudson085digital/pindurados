@@ -9,6 +9,7 @@ const include = {
   },
   receipts: {
     orderBy: { createdAt: 'asc' },
+    include: { attachments: true },
   },
 } satisfies Prisma.SaleInclude
 
