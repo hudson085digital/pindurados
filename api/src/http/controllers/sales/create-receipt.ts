@@ -1,16 +1,12 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
-import { randomUUID } from 'node:crypto'
-import { createWriteStream } from 'node:fs'
-import { extname, join } from 'node:path'
-import { pipeline } from 'node:stream/promises'
 import { makeCreateReceiptUseCase } from '@/use-cases/factories/make-create-receipt-use-case'
 import { ResourceNotFoundError } from '@/use-cases/errors/resource-not-found-error'
 import { BusinessRuleError } from '@/use-cases/errors/business-rule-error'
-import { UPLOADS_DIR, optimizeUpload } from '@/lib/uploads'
+import { storeComprovante } from '@/lib/uploads'
 
-// Registra um recebimento (crediário). Multipart/form-data: arquivo "comprovante"
-// (OBRIGATÓRIO) + campos amountInCents, method (PIX|CASH), receivedAt?, note?.
+// Registra um recebimento (crediário). Multipart/form-data: arquivo(s) "comprovante"
+// (opcional) + amountInCents, methods, methodAmounts, comprovanteMethods, receivedAt, note.
 export async function createReceipt(request: FastifyRequest, reply: FastifyReply) {
   const paramsSchema = z.object({ saleId: z.string().uuid() })
   const { saleId } = paramsSchema.parse(request.params)
@@ -28,9 +24,7 @@ export async function createReceipt(request: FastifyRequest, reply: FastifyReply
   for await (const part of request.parts()) {
     if (part.type === 'file' && part.fieldname === 'comprovante') {
       if (part.filename) {
-        const filename = `${randomUUID()}${extname(part.filename)}`
-        await pipeline(part.file, createWriteStream(join(UPLOADS_DIR, filename)))
-        paths.push(await optimizeUpload(filename))
+        paths.push(await storeComprovante(await part.toBuffer(), part.filename))
       } else {
         part.file.resume()
       }

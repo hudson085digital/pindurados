@@ -1,46 +1,46 @@
-# Deploy — Pindurados
+# Deploy — Pindurados (free)
 
-Arquitetura: **DB → Supabase** · **API (Fastify) → Render** (disco persistente) ·
-**Web (Vite/React) → Vercel**.
+**DB → Supabase** · **Comprovantes → Supabase Storage** · **API (Fastify) → Render (free)** ·
+**Web → Vercel**. Sem custo: o Storage substitui o disco, então a API roda no plano free.
 
-## 0. Subir o repositório no GitHub (uma vez)
-Render e Vercel fazem deploy a partir do GitHub.
+## 0. GitHub (uma vez)
 ```bash
 git remote add origin https://github.com/SEU_USUARIO/pindurados.git
-git push -u origin 001-recebimento-parcial   # ou faça merge na main e push
+git push -u origin 001-recebimento-parcial   # ou merge na main e push
 ```
 
-## 1. Banco no Supabase
-1. Crie um projeto em https://supabase.com (guarde a **Database password**).
-2. Botão **Connect** (topo do painel) → aba **ORMs** → **Prisma**. Copie:
-   - `DATABASE_URL` — Transaction pooler (**6543**, com `?pgbouncer=true`)
-   - `DIRECT_URL` — Session/Direct (**5432**)
-   (ou em **Settings → Database → Connection string**). Troque `[YOUR-PASSWORD]`.
+## 1. Supabase — banco + storage
+1. Crie o projeto (guarde a **Database password**; evite símbolos, ou faça URL-encode).
+2. **Connect → ORMs → Prisma**: copie `DATABASE_URL` (6543, `?pgbouncer=true`) e
+   `DIRECT_URL` (5432). Troque `[YOUR-PASSWORD]`.
+3. **Storage → New bucket** → nome **`comprovantes`** → marque **Public bucket**.
+4. **Settings → API**: copie a **Project URL** (`SUPABASE_URL`) e a chave
+   **service_role** (`SUPABASE_SERVICE_ROLE_KEY`, secreta).
 
-> As migrations rodam sozinhas no deploy do Render (`preDeployCommand`). Para rodar do
-> seu PC: `DATABASE_URL=... DIRECT_URL=... pnpm -C api exec prisma migrate deploy`.
+> Erro `Can't reach database server at postgres.<ref>` = senha com caractere especial
+> não-codificado. Reset a senha (só letras/números) ou faça URL-encode (@→%40, #→%23…).
 
-## 2. API no Render (via render.yaml)
-1. Render → **New → Blueprint** → conecte o repositório (ele lê o `render.yaml`).
-2. Cria o serviço `pindurados-api` com **disco** em `/var/data/uploads`, build,
-   migrations (preDeploy) e `JWT_SECRET` gerado.
-3. Preencha as envs `sync: false`: **DATABASE_URL** e **DIRECT_URL** (passo 1).
-4. Deploy. Anote a URL (ex.: `https://pindurados-api.onrender.com`). Health: `GET /health`.
-   - Disco persistente exige plano pago (Starter). No Railway, use um **Volume**.
+## 2. API no Render (free, via render.yaml)
+1. Render → **New → Blueprint** → conecte o repo (lê o `render.yaml`).
+2. Preencha as envs `sync:false`: `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL`,
+   `SUPABASE_SERVICE_ROLE_KEY` (o `SUPABASE_BUCKET=comprovantes` já vem).
+3. Deploy. As migrations rodam sozinhas (preDeploy). Health: `GET /health`.
+   - Free dorme após inatividade (1ª request ~30s). Sem disco (usa o Storage).
+4. Anote a URL (ex.: `https://pindurados-api.onrender.com`).
 
 ## 3. Web na Vercel
-1. Vercel → **Add New → Project** → importe o repo; **Root Directory** = `web/`.
-2. `web/vercel.json` já cuida do build Vite + rewrite SPA.
-3. Env do projeto: `VITE_API_URL=https://pindurados-api.onrender.com`.
-4. Deploy → abra a URL, crie a conta em **/sign-up** e use.
+1. Vercel → **Add New → Project** → repo; **Root Directory** = `web/`.
+2. Env: `VITE_API_URL=https://pindurados-api.onrender.com`.
+3. Deploy → abra a URL, crie a conta em **/sign-up**.
 
-## 4. CORS (opcional)
-Hoje a API aceita qualquer origem (`origin: true`). Para restringir à URL da Vercel,
-ajuste `fastifyCors` em `api/src/app.ts` lendo de uma env (ex.: `WEB_ORIGIN`).
+## Como funciona o storage
+- Com `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` setados, os comprovantes vão para o
+  bucket do Supabase; `/comprovantes/<key>` redireciona para a URL pública.
+- Sem essas envs (dev local), grava em disco (`api/uploads`) e serve localmente.
 
 ## Checklist
 - [ ] Repo no GitHub
-- [ ] Supabase criado; `DATABASE_URL`/`DIRECT_URL` em mãos
-- [ ] Render via Blueprint + envs preenchidas + disco em `/var/data/uploads`
-- [ ] Vercel com `VITE_API_URL` apontando para a API
-- [ ] `/sign-up` funcionando; dados isolados por usuário
+- [ ] Supabase: DB (URLs) + bucket público `comprovantes` + service_role
+- [ ] Render Blueprint + 4 envs preenchidas
+- [ ] Vercel com `VITE_API_URL`
+- [ ] `/sign-up` ok; comprovante abre (redireciona pro Storage)

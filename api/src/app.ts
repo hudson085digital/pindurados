@@ -6,7 +6,7 @@ import fastifyMultipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
 import { ZodError } from 'zod'
 import { env } from '@/env'
-import { UPLOADS_DIR } from '@/lib/uploads'
+import { UPLOADS_DIR, usingSupabaseStorage, comprovanteUrl } from '@/lib/uploads'
 import { usersRoutes } from '@/http/controllers/users/routes'
 import { customersRoutes } from '@/http/controllers/customers/routes'
 import { salesRoutes } from '@/http/controllers/sales/routes'
@@ -36,11 +36,21 @@ app.register(fastifyCookie)
 // Limite de 20MB por arquivo (fotos de celular); comprovantes são otimizados depois.
 app.register(fastifyMultipart, { limits: { fileSize: 20 * 1024 * 1024 } })
 
-// Comprovantes acessíveis em /comprovantes/<arquivo>
-app.register(fastifyStatic, {
-  root: UPLOADS_DIR,
-  prefix: '/comprovantes/',
-})
+// Comprovantes em /comprovantes/<arquivo>. Com Supabase Storage, redireciona para a
+// URL pública; sem ele, serve do disco local.
+if (usingSupabaseStorage) {
+  app.get('/comprovantes/:key', async (request, reply) => {
+    const { key } = request.params as { key: string }
+    const url = comprovanteUrl(key)
+    if (!url) return reply.status(404).send({ message: 'Comprovante não encontrado.' })
+    return reply.redirect(url)
+  })
+} else {
+  app.register(fastifyStatic, {
+    root: UPLOADS_DIR,
+    prefix: '/comprovantes/',
+  })
+}
 
 // Health check (público) — usado pelo monitoramento do host.
 app.get('/health', () => ({ status: 'ok' }))
