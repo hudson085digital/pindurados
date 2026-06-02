@@ -77,10 +77,14 @@ describe('CreateReceiptUseCase', () => {
     expect(sale.receipts).toHaveLength(1)
   })
 
-  it('exige o comprovante de pagamento (spec 005)', async () => {
-    await expect(() =>
-      sut.execute({ userId: USER_ID, saleId: 'sale-1', amountInCents: 50000, methods: ['PIX'] }),
-    ).rejects.toThrowError('comprovante')
+  it('permite registrar sem comprovante (anexar depois — spec 019)', async () => {
+    const { receipt } = await sut.execute({
+      userId: USER_ID,
+      saleId: 'sale-1',
+      amountInCents: 50000,
+      methods: ['PIX'],
+    })
+    expect(receipt.amountInCents).toBe(50000)
   })
 
   it('limita o recebimento ao saldo (Q2): rejeita valor acima do saldo', async () => {

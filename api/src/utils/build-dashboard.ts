@@ -8,6 +8,7 @@ export interface DashSale {
   totalPaidInCents: number
   productCostInCents: number
   profitInCents: number
+  receiptsPendingProof: number
   settled: boolean
   installments: {
     number: number
@@ -37,6 +38,7 @@ export interface DashboardData {
     overdueInstallments: number
     lateInstallments: number
     customersWithDebt: number
+    receiptsPendingProof: number
   }
   receivedByMonth: { month: string; amountInCents: number }[]
   byMethod: { method: string; amountInCents: number }[]
@@ -63,6 +65,7 @@ export function buildDashboard(sales: DashSale[]): DashboardData {
   let settledSalesCount = 0
   let overdueInstallments = 0
   let lateInstallments = 0
+  let receiptsPendingProof = 0
 
   const byMonth = new Map<string, number>()
   const byMethod = new Map<string, number>()
@@ -75,6 +78,7 @@ export function buildDashboard(sales: DashSale[]): DashboardData {
     toReceiveInCents += sale.balanceInCents
     costInCents += sale.productCostInCents
     profitInCents += sale.profitInCents
+    receiptsPendingProof += sale.receiptsPendingProof
     if (sale.settled) settledSalesCount++
 
     // saldo por cliente (agrega várias vendas do mesmo devedor)
@@ -148,6 +152,7 @@ export function buildDashboard(sales: DashSale[]): DashboardData {
       overdueInstallments,
       lateInstallments,
       customersWithDebt,
+      receiptsPendingProof,
     },
     receivedByMonth,
     byMethod: byMethodList,

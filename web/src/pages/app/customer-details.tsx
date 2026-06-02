@@ -426,6 +426,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   const [receivedAt, setReceivedAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
   const [attachRows, setAttachRows] = useState<AttachRow[]>([{ file: null, method: '' }])
+  const [deferProof, setDeferProof] = useState(false)
 
   const { mutateAsync: create, isPending } = useMutation({ mutationFn: createReceipt })
   const { mutateAsync: revert } = useMutation({ mutationFn: voidReceipt })
@@ -489,7 +490,9 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   async function handleCreate() {
     if (!amountCents) return toast.error('Informe um valor.')
     const uploads = attachUploads(attachRows)
-    if (!uploads.length) return toast.error('Anexe o comprovante de pagamento.')
+    if (!uploads.length && !deferProof) {
+      return toast.error('Anexe o comprovante ou marque "anexar depois".')
+    }
     if (amountCents > sale.balanceInCents) {
       return toast.error(
         `Valor acima do saldo. Receba no máximo ${formatCurrency(sale.balanceInCents)}.`,
@@ -511,6 +514,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
       setMethodAmounts({})
       setNote('')
       setAttachRows([{ file: null, method: '' }])
+      setDeferProof(false)
       onChange()
     } catch {
       toast.error('Erro ao registrar recebimento.')
@@ -586,8 +590,16 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 />
               </div>
               <div>
-                <Label>Comprovantes (foto/PDF) *</Label>
-                <AttachmentRows rows={attachRows} setRows={setAttachRows} />
+                <Label>Comprovantes (foto/PDF)</Label>
+                <AttachmentRows rows={attachRows} setRows={setAttachRows} allowEmpty />
+                <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={deferProof}
+                    onChange={(e) => setDeferProof(e.target.checked)}
+                  />
+                  Anexar comprovante depois (ficará em alerta até anexar)
+                </label>
               </div>
               <div>
                 <Label>Observação</Label>
@@ -613,6 +625,8 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
           {sale.receipts.map((r) => {
             const isReversal = r.amountInCents < 0
             const alreadyReversed = reversedIds.has(r.id)
+            const pendingProof =
+              !isReversal && !alreadyReversed && !r.receiptPath && r.attachments.length === 0
             return (
               <li key={r.id} className="flex items-center justify-between text-xs">
                 <span className={cn(isReversal && 'text-muted-foreground')}>
@@ -645,6 +659,11 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                         comprovante
                       </a>
                     </>
+                  )}
+                  {pendingProof && (
+                    <span className="ml-1 rounded-full bg-destructive/10 px-2 py-0.5 font-semibold text-destructive">
+                      ⚠ sem comprovante
+                    </span>
                   )}
                 </span>
                 {!isReversal && !alreadyReversed && (

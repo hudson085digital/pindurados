@@ -68,6 +68,7 @@ export interface Sale {
   totalPaidInCents: number
   balanceInCents: number
   profitInCents: number
+  receiptsPendingProof: number
   settled: boolean
 }
 

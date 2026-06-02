@@ -73,10 +73,8 @@ export class CreateReceiptUseCase {
       throw new BusinessRuleError('Informe um valor de recebimento maior que zero.')
     }
 
-    // Comprovante de pagamento é obrigatório (spec 005): ao menos um (legado ou anexo).
-    if (!receiptPath && (!attachments || attachments.length === 0)) {
-      throw new BusinessRuleError('Anexe o comprovante de pagamento.')
-    }
+    // Comprovante pode ser anexado depois (spec 019). Recebimentos sem comprovante
+    // ficam sinalizados como pendentes (não bloqueia o registro).
 
     // Saldo atual = total devido (com multa/juros) − recebimentos já lançados.
     const allocation = allocateReceipts(

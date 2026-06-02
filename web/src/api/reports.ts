@@ -29,6 +29,7 @@ export interface Dashboard {
     overdueInstallments: number
     lateInstallments: number
     customersWithDebt: number
+    receiptsPendingProof: number
   }
   receivedByMonth: { month: string; amountInCents: number }[]
   byMethod: { method: string; amountInCents: number }[]

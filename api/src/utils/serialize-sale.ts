@@ -58,6 +58,18 @@ export function serializeSale(sale: SaleWithDetails) {
   // Lucro previsto = total acordado da venda (com juros) − custo do produto.
   const profitInCents = sale.totalInCents - sale.productCostInCents
 
+  // Recebimentos positivos, não estornados e SEM comprovante (spec 019): alerta.
+  const reversedIds = new Set(
+    sale.receipts.filter((r) => r.reversesReceiptId).map((r) => r.reversesReceiptId),
+  )
+  const receiptsPendingProof = receipts.filter(
+    (r) =>
+      r.amountInCents > 0 &&
+      !reversedIds.has(r.id) &&
+      !r.receiptPath &&
+      (r.attachments?.length ?? 0) === 0,
+  ).length
+
   return {
     ...sale,
     installments,
@@ -66,6 +78,7 @@ export function serializeSale(sale: SaleWithDetails) {
     totalPaidInCents,
     balanceInCents,
     profitInCents,
+    receiptsPendingProof,
     settled: balanceInCents <= 0 && totalDueInCents > 0,
   }
 }

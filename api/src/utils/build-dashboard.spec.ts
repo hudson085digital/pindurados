@@ -9,6 +9,7 @@ function sale(over: Partial<DashSale> = {}): DashSale {
     totalPaidInCents: 0,
     productCostInCents: 0,
     profitInCents: 0,
+    receiptsPendingProof: 0,
     settled: false,
     installments: [],
     receipts: [],

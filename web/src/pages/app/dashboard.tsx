@@ -37,6 +37,14 @@ export function Dashboard() {
 
   return (
     <div className="space-y-4">
+      {t.receiptsPendingProof > 0 && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="p-3 text-sm text-destructive">
+            ⚠ {t.receiptsPendingProof} recebimento(s) sem comprovante. Anexe para manter tudo em dia.
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         {cards.map((s) => (
           <Card key={s.label} className={s.highlight ? 'bg-primary text-primary-foreground' : ''}>
