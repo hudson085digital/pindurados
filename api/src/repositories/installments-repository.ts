@@ -7,5 +7,4 @@ export type InstallmentWithSale = Prisma.InstallmentGetPayload<{
 export interface InstallmentsRepository {
   findById(id: string): Promise<InstallmentWithSale | null>
   save(installment: Installment): Promise<Installment>
-  createPayment(data: Prisma.PaymentUncheckedCreateInput): Promise<void>
 }

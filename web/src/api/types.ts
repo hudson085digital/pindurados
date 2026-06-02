@@ -1,11 +1,27 @@
 export type SaleType = 'AUTOMATIC' | 'MANUAL' | 'BY_TOTAL'
 export type InstallmentStatus = 'PAID' | 'PARTIAL' | 'OPEN'
+export type ReceiptMethod = 'PIX' | 'CASH'
+export type PixKeyType = 'RANDOM' | 'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE'
 
-export interface Payment {
+export interface PixKey {
+  id: string
+  type: PixKeyType
+  key: string
+  bankName: string
+  holderName: string
+  isDefault: boolean
+}
+
+// Recebimento no nível da venda (crediário). Valor negativo = estorno.
+export interface Receipt {
   id: string
   amountInCents: number
-  paidAt: string
+  method: ReceiptMethod
+  receivedAt: string
+  note: string | null
   receiptPath: string | null
+  reversesReceiptId: string | null
+  createdAt: string
 }
 
 export interface Installment {
@@ -17,9 +33,10 @@ export interface Installment {
   lateInterestInCents: number
   lateFeePercent: number | null
   lateReason: string | null
-  payments: Payment[]
-  // calculados pelo back
+  // calculados pelo back (alocação derivada dos recebimentos)
   paidInCents: number
+  latePaidInCents: number
+  principalPaidInCents: number
   effectiveInCents: number
   balanceInCents: number
   status: InstallmentStatus
@@ -31,15 +48,18 @@ export interface Sale {
   description: string | null
   type: SaleType
   productValueInCents: number
+  productCostInCents: number
   downPaymentInCents: number
   interestPercent: number
   lateFeePercent: number
   totalInCents: number
   saleDate: string
   installments: Installment[]
+  receipts: Receipt[]
   totalDueInCents: number
   totalPaidInCents: number
   balanceInCents: number
+  profitInCents: number
   settled: boolean
 }
 
@@ -48,6 +68,7 @@ export interface Customer {
   name: string
   phone: string | null
   note: string | null
+  autoReminder: boolean
 }
 
 export interface CustomerWithBalance extends Customer {

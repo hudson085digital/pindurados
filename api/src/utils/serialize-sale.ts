@@ -1,9 +1,15 @@
 import { SaleWithDetails } from '@/repositories/sales-repository'
+import {
+  allocateReceipts,
+  sumReceipts,
+  InstallmentStatus,
+} from '@/utils/allocate-receipts'
 
 // Enriquece uma venda com campos calculados (pago, saldo, status, atraso) para
-// devolver pronta ao front-end. Tudo em centavos.
+// devolver pronta ao front-end. A alocação por parcela é DERIVADA dos recebimentos
+// (eventos no nível da venda) — ver utils/allocate-receipts.ts. Tudo em centavos.
 
-export type InstallmentStatus = 'PAID' | 'PARTIAL' | 'OPEN'
+export type { InstallmentStatus }
 
 function startOfToday(): Date {
   const now = new Date()
@@ -13,42 +19,54 @@ function startOfToday(): Date {
 export function serializeSale(sale: SaleWithDetails) {
   const today = startOfToday()
 
-  const installments = sale.installments
+  const ordered = sale.installments.slice().sort((a, b) => a.number - b.number)
+
+  const allocation = allocateReceipts(
+    ordered.map((inst) => ({
+      amountInCents: inst.amountInCents,
+      isLate: inst.isLate,
+      lateInterestInCents: inst.lateInterestInCents,
+    })),
+    sumReceipts(sale.receipts),
+  )
+
+  const installments = ordered.map((inst, i) => {
+    const a = allocation.installments[i]
+    const overdue = a.status !== 'PAID' && inst.dueDate < today
+
+    return {
+      ...inst,
+      paidInCents: a.paidInCents,
+      latePaidInCents: a.latePaidInCents,
+      principalPaidInCents: a.principalPaidInCents,
+      effectiveInCents: a.effectiveInCents,
+      balanceInCents: a.balanceInCents,
+      status: a.status,
+      overdue,
+    }
+  })
+
+  const totalDueInCents = allocation.totalDueInCents
+  const totalPaidInCents = allocation.totalReceivedInCents
+  const balanceInCents = allocation.balanceInCents
+
+  // Recebimentos em ordem cronológica (extrato/auditoria).
+  const receipts = sale.receipts
     .slice()
-    .sort((a, b) => a.number - b.number)
-    .map((inst) => {
-      const paidInCents = inst.payments.reduce((s, p) => s + p.amountInCents, 0)
-      const lateInterestInCents = inst.isLate ? inst.lateInterestInCents : 0
-      const effectiveInCents = inst.amountInCents + lateInterestInCents
-      const balanceInCents = effectiveInCents - paidInCents
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
 
-      let status: InstallmentStatus = 'OPEN'
-      if (balanceInCents <= 0) status = 'PAID'
-      else if (paidInCents > 0) status = 'PARTIAL'
-
-      const overdue = status !== 'PAID' && inst.dueDate < today
-
-      return {
-        ...inst,
-        paidInCents,
-        effectiveInCents,
-        balanceInCents,
-        status,
-        overdue,
-      }
-    })
-
-  const totalDueInCents = installments.reduce((s, i) => s + i.effectiveInCents, 0)
-  const totalPaidInCents = installments.reduce((s, i) => s + i.paidInCents, 0)
-  const balanceInCents = totalDueInCents - totalPaidInCents
+  // Lucro previsto = total acordado da venda (com juros) − custo do produto.
+  const profitInCents = sale.totalInCents - sale.productCostInCents
 
   return {
     ...sale,
     installments,
+    receipts,
     totalDueInCents,
     totalPaidInCents,
     balanceInCents,
-    settled: balanceInCents <= 0,
+    profitInCents,
+    settled: balanceInCents <= 0 && totalDueInCents > 0,
   }
 }
 

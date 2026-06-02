@@ -5,8 +5,10 @@ import { SalesRepository } from '../sales-repository'
 const include = {
   customer: true,
   installments: {
-    include: { payments: true },
     orderBy: { number: 'asc' },
+  },
+  receipts: {
+    orderBy: { createdAt: 'asc' },
   },
 } satisfies Prisma.SaleInclude
 

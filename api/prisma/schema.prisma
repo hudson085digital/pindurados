@@ -67,6 +67,7 @@ model Sale {
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   installments Installment[]
+  receipts     Receipt[]
 
   @@map("sales")
 }
@@ -85,21 +86,31 @@ model Installment {
   saleId String @map("sale_id")
   sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
-  payments Payment[]
-
   @@map("installments")
 }
 
-// Pagamento (pode ser parcial — vários por parcela)
-model Payment {
-  id            String   @id @default(uuid())
-  amountInCents Int      @map("amount_in_cents")
-  paidAt        DateTime @map("paid_at")
-  receiptPath   String?  @map("receipt_path")
-  createdAt     DateTime @default(now()) @map("created_at")
+enum ReceiptMethod {
+  PIX
+  CASH
+}
 
-  installmentId String      @map("installment_id")
-  installment   Installment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+// Recebimento: evento imutável de entrada de dinheiro num crediário (Sale).
+// É a fonte única da verdade sobre o que foi pago. A alocação por parcela
+// (cascata, status, saldo) é DERIVADA — ver utils/allocate-receipts.ts.
+// Valor negativo = estorno (aponta para o recebimento original em reversesReceiptId).
+model Receipt {
+  id                String        @id @default(uuid())
+  amountInCents     Int           @map("amount_in_cents")
+  method            ReceiptMethod
+  receivedAt        DateTime      @map("received_at")
+  note              String?
+  receiptPath       String?       @map("receipt_path")
+  reversesReceiptId String?       @map("reverses_receipt_id")
+  createdBy         String?       @map("created_by")
+  createdAt         DateTime      @default(now()) @map("created_at")
 
-  @@map("payments")
+  saleId String @map("sale_id")
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("receipts")
 }

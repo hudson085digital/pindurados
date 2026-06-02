@@ -2,15 +2,12 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ChevronLeft } from 'lucide-react'
-import { getCustomerDetails, deleteCustomer } from '@/api/customers'
-import { deleteSale } from '@/api/sales'
-import {
-  payInstallment,
-  markInstallmentLate,
-  unmarkInstallmentLate,
-} from '@/api/installments'
-import { Installment, Sale } from '@/api/types'
+import { ChevronLeft, Undo2, Send, Bell } from 'lucide-react'
+import { getCustomerDetails, deleteCustomer, updateCustomer } from '@/api/customers'
+import { deleteSale, getChargeMessage } from '@/api/sales'
+import { createReceipt, voidReceipt } from '@/api/receipts'
+import { markInstallmentLate, unmarkInstallmentLate } from '@/api/installments'
+import { Installment, Receipt, ReceiptMethod, Sale } from '@/api/types'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { queryClient } from '@/lib/react-query'
 import { Card, CardContent } from '@/components/ui/card'
@@ -43,11 +40,20 @@ export function CustomerDetails() {
   }
 
   const { mutateAsync: removeCustomer } = useMutation({ mutationFn: deleteCustomer })
+  const { mutateAsync: saveCustomer } = useMutation({
+    mutationFn: (autoReminder: boolean) => updateCustomer(id!, { autoReminder }),
+  })
 
   async function handleDeleteCustomer() {
     if (!confirm('Excluir este devedor e TODAS as vendas dele?')) return
     await removeCustomer(id!)
     navigate('/devedores')
+  }
+
+  async function handleToggleReminder(next: boolean) {
+    await saveCustomer(next)
+    toast.success(next ? 'Lembrete automático ativado.' : 'Lembrete automático desativado.')
+    refresh()
   }
 
   if (isLoading || !data) {
@@ -83,6 +89,20 @@ export function CustomerDetails() {
           {customer.note && (
             <p className="mt-2 text-sm text-muted-foreground">{customer.note}</p>
           )}
+          <button
+            onClick={() => handleToggleReminder(!customer.autoReminder)}
+            className={cn(
+              'mt-3 flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm',
+              customer.autoReminder
+                ? 'border-primary/40 bg-primary/5 text-primary'
+                : 'text-muted-foreground',
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <Bell className="h-4 w-4" /> Lembrete automático de cobrança
+            </span>
+            <span className="font-semibold">{customer.autoReminder ? 'ON' : 'OFF'}</span>
+          </button>
         </CardContent>
       </Card>
 
@@ -110,13 +130,35 @@ export function CustomerDetails() {
   )
 }
 
+const METHOD_LABEL: Record<ReceiptMethod, string> = {
+  PIX: 'Pix',
+  CASH: 'Dinheiro',
+}
+
 function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
   const { mutateAsync: removeSale } = useMutation({ mutationFn: deleteSale })
+  const { mutateAsync: charge, isPending: charging } = useMutation({
+    mutationFn: () => getChargeMessage(sale.id),
+  })
 
   async function handleDelete() {
     if (!confirm('Excluir esta venda?')) return
     await removeSale(sale.id)
     onChange()
+  }
+
+  async function handleCharge() {
+    try {
+      const { message, whatsappUrl } = await charge()
+      if (whatsappUrl) {
+        window.open(whatsappUrl, '_blank')
+      } else {
+        await navigator.clipboard.writeText(message)
+        toast.success('Sem telefone — mensagem copiada para você colar.')
+      }
+    } catch {
+      toast.error('Não foi possível gerar a cobrança.')
+    }
   }
 
   return (
@@ -146,11 +188,28 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
           {sale.installments.length}x
         </p>
 
+        {sale.productCostInCents > 0 && (
+          <p className="text-sm">
+            Custo {formatCurrency(sale.productCostInCents)} ·{' '}
+            <span className="font-semibold text-primary">
+              lucro previsto {formatCurrency(sale.profitInCents)}
+            </span>
+          </p>
+        )}
+
+        {!sale.settled && (
+          <Button size="sm" variant="outline" onClick={handleCharge} disabled={charging}>
+            <Send className="mr-1 h-4 w-4" /> Cobrar
+          </Button>
+        )}
+
         <div className="space-y-2">
           {sale.installments.map((inst) => (
             <InstallmentRow key={inst.id} inst={inst} onChange={onChange} />
           ))}
         </div>
+
+        <ReceiptsSection sale={sale} onChange={onChange} />
 
         <Button size="sm" variant="ghost" className="text-destructive" onClick={handleDelete}>
           Excluir venda
@@ -160,42 +219,159 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
   )
 }
 
-function InstallmentRow({
-  inst,
-  onChange,
-}: {
-  inst: Installment
-  onChange: () => void
-}) {
-  const [payOpen, setPayOpen] = useState(false)
-  const [lateOpen, setLateOpen] = useState(false)
-
-  // pagamento
+function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void }) {
+  const [open, setOpen] = useState(false)
   const [amountCents, setAmountCents] = useState(0)
-  const [paidAt, setPaidAt] = useState(() => new Date().toISOString().slice(0, 10))
-  const [file, setFile] = useState<File | null>(null)
+  const [method, setMethod] = useState<ReceiptMethod>('PIX')
+  const [receivedAt, setReceivedAt] = useState(() => new Date().toISOString().slice(0, 10))
+  const [note, setNote] = useState('')
 
-  // atraso
+  const { mutateAsync: create, isPending } = useMutation({ mutationFn: createReceipt })
+  const { mutateAsync: revert } = useMutation({ mutationFn: voidReceipt })
+
+  // Recebimentos positivos que já foram estornados (têm um estorno apontando p/ eles).
+  const reversedIds = new Set(
+    sale.receipts.filter((r) => r.reversesReceiptId).map((r) => r.reversesReceiptId!),
+  )
+
+  async function handleCreate() {
+    if (!amountCents) return toast.error('Informe um valor.')
+    if (amountCents > sale.balanceInCents) {
+      return toast.error(
+        `Valor acima do saldo. Receba no máximo ${formatCurrency(sale.balanceInCents)}.`,
+      )
+    }
+    try {
+      await create({ saleId: sale.id, amountInCents: amountCents, method, receivedAt, note })
+      toast.success('Recebimento registrado!')
+      setOpen(false)
+      setAmountCents(0)
+      setNote('')
+      onChange()
+    } catch {
+      toast.error('Erro ao registrar recebimento.')
+    }
+  }
+
+  async function handleVoid(receipt: Receipt) {
+    if (!confirm(`Estornar o recebimento de ${formatCurrency(receipt.amountInCents)}?`)) return
+    try {
+      await revert({ saleId: sale.id, receiptId: receipt.id })
+      toast.success('Recebimento estornado.')
+      onChange()
+    } catch {
+      toast.error('Erro ao estornar.')
+    }
+  }
+
+  return (
+    <div className="rounded-md bg-secondary/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Recebimentos
+        </p>
+        {!sale.settled && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <Button size="sm" onClick={() => setOpen(true)}>
+              Registrar recebimento
+            </Button>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Registrar recebimento</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                Abate das parcelas mais antigas primeiro. Saldo:{' '}
+                <strong>{formatCurrency(sale.balanceInCents)}</strong>.
+              </p>
+              <div>
+                <Label>Valor recebido (R$) *</Label>
+                <CurrencyInput
+                  valueInCents={amountCents}
+                  onChangeCents={setAmountCents}
+                  placeholder="0,00"
+                />
+              </div>
+              <div>
+                <Label>Forma</Label>
+                <div className="mt-1 flex gap-2">
+                  {(['PIX', 'CASH'] as ReceiptMethod[]).map((m) => (
+                    <Button
+                      key={m}
+                      type="button"
+                      size="sm"
+                      variant={method === m ? 'default' : 'outline'}
+                      className="flex-1"
+                      onClick={() => setMethod(m)}
+                    >
+                      {METHOD_LABEL[m]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label>Data</Label>
+                <Input
+                  type="date"
+                  value={receivedAt}
+                  onChange={(e) => setReceivedAt(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Observação</Label>
+                <Textarea
+                  rows={2}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Opcional"
+                />
+              </div>
+              <Button className="w-full" onClick={handleCreate} disabled={isPending}>
+                Salvar recebimento
+              </Button>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      {sale.receipts.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhum recebimento ainda.</p>
+      ) : (
+        <ul className="space-y-1">
+          {sale.receipts.map((r) => {
+            const isReversal = r.amountInCents < 0
+            const alreadyReversed = reversedIds.has(r.id)
+            return (
+              <li key={r.id} className="flex items-center justify-between text-xs">
+                <span className={cn(isReversal && 'text-muted-foreground')}>
+                  {isReversal ? '↩ Estorno ' : '✓ '}
+                  <strong>{formatCurrency(Math.abs(r.amountInCents))}</strong> ·{' '}
+                  {METHOD_LABEL[r.method]} · {formatDate(r.receivedAt)}
+                  {r.note && !isReversal && ` · ${r.note}`}
+                </span>
+                {!isReversal && !alreadyReversed && (
+                  <button
+                    className="ml-2 flex items-center gap-0.5 text-destructive"
+                    onClick={() => handleVoid(r)}
+                  >
+                    <Undo2 className="h-3 w-3" /> estornar
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () => void }) {
+  const [lateOpen, setLateOpen] = useState(false)
   const [lateFee, setLateFee] = useState('25')
   const [reason, setReason] = useState('')
 
-  const { mutateAsync: pay, isPending: paying } = useMutation({ mutationFn: payInstallment })
   const { mutateAsync: markLate } = useMutation({ mutationFn: markInstallmentLate })
   const { mutateAsync: unmarkLate } = useMutation({ mutationFn: unmarkInstallmentLate })
-
-  async function handlePay() {
-    if (!amountCents) return toast.error('Informe um valor.')
-    try {
-      await pay({ installmentId: inst.id, amountInCents: amountCents, paidAt, comprovante: file })
-      toast.success('Pagamento registrado!')
-      setPayOpen(false)
-      setAmountCents(0)
-      setFile(null)
-      onChange()
-    } catch {
-      toast.error('Erro ao registrar pagamento.')
-    }
-  }
 
   async function handleMarkLate() {
     await markLate({ installmentId: inst.id, lateFeePercent: Number(lateFee), reason })
@@ -229,7 +405,8 @@ function InstallmentRow({
           <p className="font-bold">{formatCurrency(inst.effectiveInCents)}</p>
           {inst.paidInCents > 0 && inst.balanceInCents > 0 && (
             <p className="text-xs text-muted-foreground">
-              falta {formatCurrency(inst.balanceInCents)}
+              pago {formatCurrency(inst.paidInCents)} · falta{' '}
+              {formatCurrency(inst.balanceInCents)}
             </p>
           )}
           {inst.isLate && (
@@ -247,66 +424,8 @@ function InstallmentRow({
         </p>
       )}
 
-      {inst.payments.map((p) => (
-        <p key={p.id} className="mt-1 text-xs text-muted-foreground">
-          ✓ {formatCurrency(p.amountInCents)} em {formatDate(p.paidAt)}
-          {p.receiptPath && (
-            <>
-              {' · '}
-              <a
-                className="text-primary"
-                href={`${import.meta.env.VITE_API_URL}/comprovantes/${p.receiptPath}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                comprovante
-              </a>
-            </>
-          )}
-        </p>
-      ))}
-
       {inst.status !== 'PAID' && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {/* PAGAMENTO */}
-          <Dialog open={payOpen} onOpenChange={setPayOpen}>
-            <Button size="sm" variant="outline" onClick={() => setPayOpen(true)}>
-              Registrar pagamento
-            </Button>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Registrar pagamento</DialogTitle>
-              </DialogHeader>
-              <p className="text-sm text-muted-foreground">
-                Pode ser o total ou só uma parte.
-              </p>
-              <div>
-                <Label>Valor recebido (R$) *</Label>
-                <CurrencyInput
-                  valueInCents={amountCents}
-                  onChangeCents={setAmountCents}
-                  placeholder="0,00"
-                />
-              </div>
-              <div>
-                <Label>Data</Label>
-                <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
-              </div>
-              <div>
-                <Label>Comprovante (foto/PDF)</Label>
-                <Input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
-              </div>
-              <Button className="w-full" onClick={handlePay} disabled={paying}>
-                Salvar pagamento
-              </Button>
-            </DialogContent>
-          </Dialog>
-
-          {/* ATRASO */}
           {inst.isLate ? (
             <Button size="sm" onClick={handleUnmark}>
               Tirar atraso
@@ -321,7 +440,7 @@ function InstallmentRow({
                   <DialogTitle>Marcar atraso</DialogTitle>
                 </DialogHeader>
                 <p className="text-sm text-muted-foreground">
-                  Aplica juros (padrão 25% sobre a parcela, uma única vez).
+                  Aplica juros (padrão 25% sobre o principal em aberto, uma única vez).
                 </p>
                 <div>
                   <Label>Taxa de atraso (%)</Label>

@@ -1,4 +1,4 @@
-import { Installment, Prisma } from '@prisma/client'
+import { Installment } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { InstallmentsRepository } from '../installments-repository'
 
@@ -15,9 +15,5 @@ export class PrismaInstallmentsRepository implements InstallmentsRepository {
       where: { id: installment.id },
       data: installment,
     })
-  }
-
-  async createPayment(data: Prisma.PaymentUncheckedCreateInput) {
-    await prisma.payment.create({ data })
   }
 }
