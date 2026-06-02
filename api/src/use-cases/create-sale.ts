@@ -11,6 +11,7 @@ interface CreateSaleUseCaseRequest {
   type: SaleType
   description?: string | null
   productValueInCents: number
+  productCostInCents?: number
   downPaymentInCents?: number
   interestPercent?: number
   installmentsCount?: number
@@ -61,6 +62,7 @@ export class CreateSaleUseCase {
       description: request.description ?? null,
       type: request.type,
       productValueInCents: calc.productValueInCents,
+      productCostInCents: request.productCostInCents ?? 0,
       downPaymentInCents: calc.downPaymentInCents,
       interestPercent: calc.interestPercent,
       lateFeePercent,

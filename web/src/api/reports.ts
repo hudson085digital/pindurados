@@ -4,6 +4,8 @@ export interface Summary {
   totalSoldInCents: number
   totalReceivedInCents: number
   totalToReceiveInCents: number
+  totalCostInCents: number
+  projectedProfitInCents: number
   salesCount: number
   settledSalesCount: number
   overdueInstallments: number

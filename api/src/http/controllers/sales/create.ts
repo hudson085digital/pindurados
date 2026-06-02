@@ -9,6 +9,7 @@ export async function createSale(request: FastifyRequest, reply: FastifyReply) {
     type: z.enum(['AUTOMATIC', 'MANUAL', 'BY_TOTAL']).default('AUTOMATIC'),
     description: z.string().optional().nullable(),
     productValueInCents: z.coerce.number().int().positive(),
+    productCostInCents: z.coerce.number().int().nonnegative().default(0),
     downPaymentInCents: z.coerce.number().int().nonnegative().default(0),
     interestPercent: z.coerce.number().nonnegative().optional(),
     installmentsCount: z.coerce.number().int().positive().optional(),

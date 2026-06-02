@@ -82,6 +82,7 @@ model Sale {
   description         String?
   type                SaleType @default(AUTOMATIC)
   productValueInCents Int      @map("product_value_in_cents")
+  productCostInCents  Int      @default(0) @map("product_cost_in_cents")
   downPaymentInCents  Int      @default(0) @map("down_payment_in_cents")
   interestPercent     Float    @map("interest_percent")
   lateFeePercent      Float    @default(25) @map("late_fee_percent")

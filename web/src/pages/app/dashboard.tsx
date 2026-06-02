@@ -18,7 +18,7 @@ export function Dashboard() {
   const stats = [
     { label: 'A receber', value: formatCurrency(summary.totalToReceiveInCents), highlight: true },
     { label: 'Já recebido', value: formatCurrency(summary.totalReceivedInCents) },
-    { label: 'Total vendido', value: formatCurrency(summary.totalSoldInCents) },
+    { label: 'Lucro previsto', value: formatCurrency(summary.projectedProfitInCents) },
     {
       label: 'Parcelas vencidas',
       value: String(summary.overdueInstallments),
@@ -61,6 +61,8 @@ export function Dashboard() {
           <Row label="Vendas registradas" value={summary.salesCount} />
           <Row label="Vendas quitadas" value={summary.settledSalesCount} />
           <Row label="Parcelas em atraso" value={summary.lateInstallments} />
+          <Row label="Total vendido" value={formatCurrency(summary.totalSoldInCents)} />
+          <Row label="Custo total" value={formatCurrency(summary.totalCostInCents)} />
         </CardContent>
       </Card>
 
@@ -71,7 +73,7 @@ export function Dashboard() {
   )
 }
 
-function Row({ label, value }: { label: string; value: number }) {
+function Row({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex justify-between py-2 first:pt-0 last:pb-0">
       <span className="text-muted-foreground">{label}</span>

@@ -44,6 +44,7 @@ export function NewSale() {
   const [type, setType] = useState<SaleType>('AUTOMATIC')
   const [description, setDescription] = useState('')
   const [productValue, setProductValue] = useState('')
+  const [productCost, setProductCost] = useState('')
   const [downPayment, setDownPayment] = useState('')
   const [interest, setInterest] = useState('50')
   const [installments, setInstallments] = useState('3')
@@ -70,6 +71,7 @@ export function NewSale() {
     const base: CalculateBody = {
       type,
       productValueInCents: cents,
+      productCostInCents: reaisToCents(productCost),
       downPaymentInCents: reaisToCents(downPayment),
     }
     if (editingCustom) {
@@ -248,6 +250,19 @@ export function NewSale() {
           </div>
         </div>
 
+        <div>
+          <Label>Custo do produto (R$)</Label>
+          <Input
+            inputMode="decimal"
+            value={productCost}
+            onChange={(e) => setProductCost(e.target.value)}
+            placeholder="0,00"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Quanto você pagou — usado para calcular o lucro.
+          </p>
+        </div>
+
         {/* Campos por modo (escondidos quando editando manualmente) */}
         {!editingCustom && (
           <div className="grid grid-cols-2 gap-3">
@@ -367,6 +382,12 @@ export function NewSale() {
               <span>Total a pagar</span>
               <span>{formatCurrency(preview.totalInCents)}</span>
             </div>
+            {reaisToCents(productCost) > 0 && (
+              <div className="mt-1 flex justify-between text-sm font-semibold text-primary">
+                <span>Lucro previsto (total − custo)</span>
+                <span>{formatCurrency(preview.totalInCents - reaisToCents(productCost))}</span>
+              </div>
+            )}
             <p className="mt-1 font-semibold text-primary">
               {preview.installmentsCount}x
               {preview.custom

@@ -9,6 +9,8 @@ interface GetSummaryUseCaseResponse {
   totalSoldInCents: number
   totalReceivedInCents: number
   totalToReceiveInCents: number
+  totalCostInCents: number
+  projectedProfitInCents: number
   salesCount: number
   settledSalesCount: number
   overdueInstallments: number
@@ -28,6 +30,8 @@ export class GetSummaryUseCase {
     let totalSoldInCents = 0
     let totalReceivedInCents = 0
     let totalToReceiveInCents = 0
+    let totalCostInCents = 0
+    let projectedProfitInCents = 0
     let settledSalesCount = 0
     let overdueInstallments = 0
     let lateInstallments = 0
@@ -36,6 +40,8 @@ export class GetSummaryUseCase {
       totalSoldInCents += sale.totalDueInCents
       totalReceivedInCents += sale.totalPaidInCents
       totalToReceiveInCents += sale.balanceInCents
+      totalCostInCents += sale.productCostInCents
+      projectedProfitInCents += sale.profitInCents
       if (sale.settled) settledSalesCount++
       for (const inst of sale.installments) {
         if (inst.overdue) overdueInstallments++
@@ -47,6 +53,8 @@ export class GetSummaryUseCase {
       totalSoldInCents,
       totalReceivedInCents,
       totalToReceiveInCents,
+      totalCostInCents,
+      projectedProfitInCents,
       salesCount: sales.length,
       settledSalesCount,
       overdueInstallments,

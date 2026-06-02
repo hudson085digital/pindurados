@@ -4,11 +4,23 @@ import { CalculationResult, Sale, SaleType } from './types'
 export interface CalculateBody {
   type: SaleType
   productValueInCents: number
+  productCostInCents?: number
   downPaymentInCents?: number
   interestPercent?: number
   installmentsCount?: number
   targetTotalInCents?: number
   customInstallmentValuesInCents?: number[]
+}
+
+export interface ChargeMessageResponse {
+  message: string
+  phone: string | null
+  whatsappUrl: string | null
+}
+
+export async function getChargeMessage(saleId: string) {
+  const response = await api.get<ChargeMessageResponse>(`/sales/${saleId}/charge-message`)
+  return response.data
 }
 
 export async function calculateSale(body: CalculateBody) {
