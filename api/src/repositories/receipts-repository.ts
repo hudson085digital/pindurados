@@ -8,6 +8,7 @@ export type ReceiptWithSale = Prisma.ReceiptGetPayload<{
 export interface ReceiptsRepository {
   create(data: Prisma.ReceiptUncheckedCreateInput): Promise<Receipt>
   findById(id: string): Promise<ReceiptWithSale | null>
+  update(id: string, data: Prisma.ReceiptUpdateInput): Promise<Receipt>
   /** Recebimento de estorno que aponta para este recebimento (se houver). */
   findReversalOf(receiptId: string): Promise<Receipt | null>
 }

@@ -28,6 +28,35 @@ export async function createReceipt({
   await api.post(`/sales/${saleId}/receipts`, form)
 }
 
+export interface UpdateReceiptBody {
+  saleId: string
+  receiptId: string
+  amountInCents?: number
+  method?: ReceiptMethod
+  receivedAt?: string
+  note?: string
+  comprovante?: File | null
+}
+
+export async function updateReceipt({
+  saleId,
+  receiptId,
+  amountInCents,
+  method,
+  receivedAt,
+  note,
+  comprovante,
+}: UpdateReceiptBody) {
+  const form = new FormData()
+  if (amountInCents !== undefined) form.append('amountInCents', String(amountInCents))
+  if (method) form.append('method', method)
+  if (receivedAt) form.append('receivedAt', receivedAt)
+  if (note !== undefined) form.append('note', note)
+  if (comprovante) form.append('comprovante', comprovante)
+
+  await api.put(`/sales/${saleId}/receipts/${receiptId}`, form)
+}
+
 export async function voidReceipt({
   saleId,
   receiptId,

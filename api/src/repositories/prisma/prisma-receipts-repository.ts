@@ -14,6 +14,10 @@ export class PrismaReceiptsRepository implements ReceiptsRepository {
     })
   }
 
+  async update(id: string, data: Prisma.ReceiptUpdateInput) {
+    return prisma.receipt.update({ where: { id }, data })
+  }
+
   async findReversalOf(receiptId: string) {
     return prisma.receipt.findFirst({
       where: { reversesReceiptId: receiptId },

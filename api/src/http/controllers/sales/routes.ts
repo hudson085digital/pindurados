@@ -6,6 +6,7 @@ import { saleDetails } from './details'
 import { updateSale } from './update'
 import { deleteSale } from './delete'
 import { createReceipt } from './create-receipt'
+import { updateReceipt } from './update-receipt'
 import { voidReceipt } from './void-receipt'
 import { chargeMessage } from './charge-message'
 
@@ -20,6 +21,7 @@ export async function salesRoutes(app: FastifyInstance) {
 
   // Recebimentos (crediário)
   app.post('/sales/:saleId/receipts', createReceipt)
+  app.put('/sales/:saleId/receipts/:receiptId', updateReceipt)
   app.post('/sales/:saleId/receipts/:receiptId/void', voidReceipt)
 
   // Mensagem de cobrança

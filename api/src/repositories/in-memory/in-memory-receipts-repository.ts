@@ -31,6 +31,17 @@ export class InMemoryReceiptsRepository implements ReceiptsRepository {
     return receipt
   }
 
+  async update(id: string, data: Prisma.ReceiptUpdateInput): Promise<Receipt> {
+    const receipt = this.items.find((r) => r.id === id)
+    if (!receipt) throw new Error('Receipt not found')
+    if (data.amountInCents !== undefined) receipt.amountInCents = data.amountInCents as number
+    if (data.method !== undefined) receipt.method = data.method as Receipt['method']
+    if (data.receivedAt !== undefined) receipt.receivedAt = new Date(data.receivedAt as string)
+    if (data.note !== undefined) receipt.note = data.note as string | null
+    if (data.receiptPath !== undefined) receipt.receiptPath = data.receiptPath as string | null
+    return receipt
+  }
+
   async findById(id: string): Promise<ReceiptWithSale | null> {
     const receipt = this.items.find((r) => r.id === id)
     if (!receipt) return null

@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { ChevronLeft, Undo2, Send, Bell, Pencil } from 'lucide-react'
 import { getCustomerDetails, deleteCustomer, updateCustomer } from '@/api/customers'
 import { deleteSale, getChargeMessage, updateSale } from '@/api/sales'
-import { createReceipt, voidReceipt } from '@/api/receipts'
+import { createReceipt, updateReceipt, voidReceipt } from '@/api/receipts'
 import {
   markInstallmentLate,
   unmarkInstallmentLate,
@@ -149,12 +149,25 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
   const [editDesc, setEditDesc] = useState(sale.description ?? '')
   const [editCost, setEditCost] = useState(sale.productCostInCents)
   const [editDate, setEditDate] = useState(sale.saleDate.slice(0, 10))
+  // Reparcelamento (opcional)
+  const [reparcelar, setReparcelar] = useState(false)
+  const [editProductValue, setEditProductValue] = useState(sale.productValueInCents)
+  const [editInterest, setEditInterest] = useState(String(sale.interestPercent))
+  const [editInstallments, setEditInstallments] = useState(String(sale.installments.length))
   const { mutateAsync: saveSale, isPending: saving } = useMutation({
     mutationFn: () =>
       updateSale(sale.id, {
         description: editDesc || null,
         productCostInCents: editCost,
         saleDate: editDate,
+        ...(reparcelar
+          ? {
+              type: 'MANUAL',
+              productValueInCents: editProductValue,
+              interestPercent: Number(editInterest) || 0,
+              installmentsCount: Number(editInstallments) || 1,
+            }
+          : {}),
       }),
   })
 
@@ -235,6 +248,10 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                 setEditDesc(sale.description ?? '')
                 setEditCost(sale.productCostInCents)
                 setEditDate(sale.saleDate.slice(0, 10))
+                setReparcelar(false)
+                setEditProductValue(sale.productValueInCents)
+                setEditInterest(String(sale.interestPercent))
+                setEditInstallments(String(sale.installments.length))
                 setEditOpen(true)
               }}
             >
@@ -256,6 +273,50 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                 <Label>Data da venda</Label>
                 <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
               </div>
+
+              <button
+                type="button"
+                onClick={() => setReparcelar((v) => !v)}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm',
+                  reparcelar ? 'border-primary/40 bg-primary/5 text-primary' : 'text-muted-foreground',
+                )}
+              >
+                <span>Reparcelar (alterar valor / nº de parcelas)</span>
+                <span className="font-semibold">{reparcelar ? 'ON' : 'OFF'}</span>
+              </button>
+
+              {reparcelar && (
+                <div className="space-y-3 rounded-md border p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Regenera as parcelas. O que já foi recebido é mantido e abatido do novo total.
+                  </p>
+                  <div>
+                    <Label>Valor do produto (R$)</Label>
+                    <CurrencyInput valueInCents={editProductValue} onChangeCents={setEditProductValue} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Juros (%)</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={editInterest}
+                        onChange={(e) => setEditInterest(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>Nº de parcelas</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={editInstallments}
+                        onChange={(e) => setEditInstallments(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Button className="w-full" onClick={handleSaveSale} disabled={saving}>
                 Salvar alterações
               </Button>
@@ -289,6 +350,45 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
 
   const { mutateAsync: create, isPending } = useMutation({ mutationFn: createReceipt })
   const { mutateAsync: revert } = useMutation({ mutationFn: voidReceipt })
+  const { mutateAsync: edit, isPending: editing } = useMutation({ mutationFn: updateReceipt })
+
+  // Edição de um recebimento existente
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editAmount, setEditAmount] = useState(0)
+  const [editMethod, setEditMethod] = useState<ReceiptMethod>('PIX')
+  const [editDate, setEditDate] = useState('')
+  const [editNote, setEditNote] = useState('')
+  const [editFile, setEditFile] = useState<File | null>(null)
+
+  function openEdit(r: Receipt) {
+    setEditId(r.id)
+    setEditAmount(r.amountInCents)
+    setEditMethod(r.method)
+    setEditDate(r.receivedAt.slice(0, 10))
+    setEditNote(r.note ?? '')
+    setEditFile(null)
+  }
+
+  async function handleEdit() {
+    if (!editId) return
+    if (!editAmount) return toast.error('Informe um valor.')
+    try {
+      await edit({
+        saleId: sale.id,
+        receiptId: editId,
+        amountInCents: editAmount,
+        method: editMethod,
+        receivedAt: editDate,
+        note: editNote,
+        comprovante: editFile,
+      })
+      toast.success('Recebimento atualizado.')
+      setEditId(null)
+      onChange()
+    } catch {
+      toast.error('Não foi possível editar (verifique o valor x saldo).')
+    }
+  }
 
   // Recebimentos positivos que já foram estornados (têm um estorno apontando p/ eles).
   const reversedIds = new Set(
@@ -433,18 +533,78 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                   )}
                 </span>
                 {!isReversal && !alreadyReversed && (
-                  <button
-                    className="ml-2 flex items-center gap-0.5 text-destructive"
-                    onClick={() => handleVoid(r)}
-                  >
-                    <Undo2 className="h-3 w-3" /> estornar
-                  </button>
+                  <span className="ml-2 flex shrink-0 items-center gap-2">
+                    <button
+                      className="flex items-center gap-0.5 text-primary"
+                      onClick={() => openEdit(r)}
+                    >
+                      <Pencil className="h-3 w-3" /> editar
+                    </button>
+                    <button
+                      className="flex items-center gap-0.5 text-destructive"
+                      onClick={() => handleVoid(r)}
+                    >
+                      <Undo2 className="h-3 w-3" /> estornar
+                    </button>
+                  </span>
                 )}
               </li>
             )
           })}
         </ul>
       )}
+
+      {/* Diálogo de edição de recebimento */}
+      <Dialog open={editId !== null} onOpenChange={(o) => !o && setEditId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar recebimento</DialogTitle>
+          </DialogHeader>
+          <div>
+            <Label>Valor (R$)</Label>
+            <CurrencyInput valueInCents={editAmount} onChangeCents={setEditAmount} />
+          </div>
+          <div>
+            <Label>Forma</Label>
+            <div className="mt-1 flex gap-2">
+              {(['PIX', 'CASH'] as ReceiptMethod[]).map((m) => (
+                <Button
+                  key={m}
+                  type="button"
+                  size="sm"
+                  variant={editMethod === m ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setEditMethod(m)}
+                >
+                  {METHOD_LABEL[m]}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label>Data</Label>
+            <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+          </div>
+          <div>
+            <Label>Trocar comprovante (opcional)</Label>
+            <Input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setEditFile(e.target.files?.[0] ?? null)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Deixe vazio para manter o comprovante atual.
+            </p>
+          </div>
+          <div>
+            <Label>Observação</Label>
+            <Textarea rows={2} value={editNote} onChange={(e) => setEditNote(e.target.value)} />
+          </div>
+          <Button className="w-full" onClick={handleEdit} disabled={editing}>
+            Salvar alterações
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
