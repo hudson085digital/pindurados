@@ -23,6 +23,8 @@ interface UpdateSaleUseCaseRequest {
   installmentsCount?: number
   targetTotalInCents?: number
   customInstallmentValuesInCents?: number[]
+  /** Vencimento de cada parcela ("YYYY-MM-DD"), alinhado às parcelas geradas. */
+  dueDatesISO?: string[]
 }
 
 interface UpdateSaleUseCaseResponse {
@@ -56,7 +58,8 @@ export class UpdateSaleUseCase {
       req.interestPercent !== undefined ||
       req.installmentsCount !== undefined ||
       req.targetTotalInCents !== undefined ||
-      req.customInstallmentValuesInCents !== undefined
+      req.customInstallmentValuesInCents !== undefined ||
+      req.dueDatesISO !== undefined
 
     if (!isReparcelamento) {
       const updated = await this.salesRepository.update(req.saleId, {
@@ -95,7 +98,10 @@ export class UpdateSaleUseCase {
       (amountInCents, index) => ({
         number: index + 1,
         amountInCents,
-        dueDate: isoToDate(addMonthsISO(firstDueISO, index)),
+        // Vencimento: informado por parcela, ou cascata a partir da 1ª.
+        dueDate: req.dueDatesISO?.[index]
+          ? isoToDate(req.dueDatesISO[index])
+          : isoToDate(addMonthsISO(firstDueISO, index)),
       }),
     )
 

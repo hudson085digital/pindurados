@@ -168,11 +168,28 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
   const [editDesc, setEditDesc] = useState(sale.description ?? '')
   const [editCost, setEditCost] = useState(sale.productCostInCents)
   const [editDate, setEditDate] = useState(sale.saleDate.slice(0, 10))
-  // Reparcelamento (opcional)
+  // Reparcelamento (opcional): edita valor do produto + valor e data de cada parcela.
   const [reparcelar, setReparcelar] = useState(false)
   const [editProductValue, setEditProductValue] = useState(sale.productValueInCents)
-  const [editInterest, setEditInterest] = useState(String(sale.interestPercent))
-  const [editInstallments, setEditInstallments] = useState(String(sale.installments.length))
+  const [parcels, setParcels] = useState<{ value: number; date: string }[]>([])
+
+  function seedParcels() {
+    setParcels(
+      sale.installments.map((i) => ({ value: i.amountInCents, date: i.dueDate.slice(0, 10) })),
+    )
+  }
+
+  function setParcelCount(n: number) {
+    setParcels((prev) => {
+      const count = Math.max(1, n)
+      if (count === prev.length) return prev
+      if (count < prev.length) return prev.slice(0, count)
+      const last = prev[prev.length - 1]
+      const extra = Array.from({ length: count - prev.length }, () => ({ value: 0, date: last?.date ?? '' }))
+      return [...prev, ...extra]
+    })
+  }
+
   const { mutateAsync: saveSale, isPending: saving } = useMutation({
     mutationFn: () =>
       updateSale(sale.id, {
@@ -183,12 +200,14 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
           ? {
               type: 'MANUAL',
               productValueInCents: editProductValue,
-              interestPercent: Number(editInterest) || 0,
-              installmentsCount: Number(editInstallments) || 1,
+              customInstallmentValuesInCents: parcels.map((p) => p.value),
+              dueDatesISO: parcels.map((p) => p.date),
             }
           : {}),
       }),
   })
+
+  const parcelsSum = parcels.reduce((s, p) => s + p.value, 0)
 
   async function handleDelete() {
     if (!confirm('Excluir esta venda?')) return
@@ -269,8 +288,7 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                 setEditDate(sale.saleDate.slice(0, 10))
                 setReparcelar(false)
                 setEditProductValue(sale.productValueInCents)
-                setEditInterest(String(sale.interestPercent))
-                setEditInstallments(String(sale.installments.length))
+                seedParcels()
                 setEditOpen(true)
               }}
             >
@@ -301,7 +319,7 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                   reparcelar ? 'border-primary/40 bg-primary/5 text-primary' : 'text-muted-foreground',
                 )}
               >
-                <span>Reparcelar (alterar valor / nº de parcelas)</span>
+                <span>Reparcelar (valor e data de cada parcela)</span>
                 <span className="font-semibold">{reparcelar ? 'ON' : 'OFF'}</span>
               </button>
 
@@ -314,25 +332,41 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                     <Label>Valor do produto (R$)</Label>
                     <CurrencyInput valueInCents={editProductValue} onChangeCents={setEditProductValue} />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Juros (%)</Label>
-                      <Input
-                        inputMode="decimal"
-                        value={editInterest}
-                        onChange={(e) => setEditInterest(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Nº de parcelas</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={editInstallments}
-                        onChange={(e) => setEditInstallments(e.target.value)}
-                      />
-                    </div>
+                  <div>
+                    <Label>Nº de parcelas</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={parcels.length}
+                      onChange={(e) => setParcelCount(Number(e.target.value) || 1)}
+                    />
                   </div>
+                  <div className="space-y-2">
+                    {parcels.map((p, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="w-8 shrink-0 text-sm text-muted-foreground">{i + 1}ª</span>
+                        <CurrencyInput
+                          valueInCents={p.value}
+                          onChangeCents={(c) =>
+                            setParcels((prev) => prev.map((x, j) => (j === i ? { ...x, value: c } : x)))
+                          }
+                        />
+                        <Input
+                          type="date"
+                          className="w-40"
+                          value={p.date}
+                          onChange={(e) =>
+                            setParcels((prev) =>
+                              prev.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)),
+                            )
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm">
+                    Novo total: <strong>{formatCurrency(parcelsSum)}</strong>
+                  </p>
                 </div>
               )}
 

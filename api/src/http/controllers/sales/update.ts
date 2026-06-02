@@ -19,6 +19,7 @@ export async function updateSale(request: FastifyRequest, reply: FastifyReply) {
     installmentsCount: z.coerce.number().int().positive().optional(),
     targetTotalInCents: z.coerce.number().int().nonnegative().optional(),
     customInstallmentValuesInCents: z.array(z.coerce.number().int()).optional(),
+    dueDatesISO: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
   })
 
   const { id } = paramsSchema.parse(request.params)

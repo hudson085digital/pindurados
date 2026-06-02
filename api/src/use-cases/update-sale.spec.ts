@@ -106,6 +106,24 @@ describe('UpdateSaleUseCase — reparcelamento', () => {
     ).rejects.toThrowError('não pode ser menor que o já recebido')
   })
 
+  it('reparcela com valor e data de cada parcela (custom)', async () => {
+    const { sale } = await sut.execute({
+      userId: USER,
+      saleId: 'sale-1',
+      type: 'MANUAL',
+      productValueInCents: 100000,
+      customInstallmentValuesInCents: [70000, 30000, 20000],
+      dueDatesISO: ['2026-08-05', '2026-09-05', '2026-10-05'],
+    })
+    expect(sale.totalInCents).toBe(120000)
+    expect(sale.installments.map((i) => i.amountInCents)).toEqual([70000, 30000, 20000])
+    expect(sale.installments.map((i) => i.dueDate.toISOString().slice(0, 10))).toEqual([
+      '2026-08-05',
+      '2026-09-05',
+      '2026-10-05',
+    ])
+  })
+
   it('a alocação após reparcelar bate com serializeSale', async () => {
     const { sale } = await sut.execute({
       userId: USER,
