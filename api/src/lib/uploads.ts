@@ -4,6 +4,7 @@ import { extname, join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import sharp from 'sharp'
 import { createClient } from '@supabase/supabase-js'
+import { BusinessRuleError } from '@/use-cases/errors/business-rule-error'
 
 // Pasta local (usada quando NÃO há Supabase Storage configurado).
 export const UPLOADS_DIR = process.env.UPLOADS_DIR
@@ -58,7 +59,11 @@ export async function storeComprovante(buffer: Buffer, originalName: string): Pr
 
   if (supabase) {
     const { error } = await supabase.storage.from(BUCKET).upload(key, data, { contentType })
-    if (error) throw error
+    if (error) {
+      throw new BusinessRuleError(
+        `Falha ao salvar o comprovante no Storage (bucket "${BUCKET}"): ${error.message}`,
+      )
+    }
   } else {
     await writeFile(join(UPLOADS_DIR, key), data)
   }

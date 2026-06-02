@@ -71,9 +71,8 @@ app.setErrorHandler((error, _request, reply) => {
       .send({ message: 'Dados inválidos.', issues: error.format() })
   }
 
-  if (env.NODE_ENV !== 'production') {
-    console.error(error)
-  }
+  // Loga sempre (inclusive em produção) para aparecer nos logs do host.
+  console.error(error)
 
   return reply.status(500).send({ message: 'Erro interno do servidor.' })
 })

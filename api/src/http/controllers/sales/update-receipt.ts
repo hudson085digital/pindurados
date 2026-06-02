@@ -26,44 +26,44 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
   const paths: string[] = []
   let attachmentMethods: (Method | null)[] = []
 
-  for await (const part of request.parts()) {
-    if (part.type === 'file' && part.fieldname === 'comprovante') {
-      if (part.filename) {
-        paths.push(await storeComprovante(await part.toBuffer(), part.filename))
-      } else {
-        part.file.resume()
-      }
-    } else if (part.type === 'field') {
-      if (part.fieldname === 'amountInCents' && part.value) amountInCents = Number(part.value)
-      if (part.fieldname === 'methods') {
-        methodsProvided = true
-        methods.push(
-          ...String(part.value)
-            .split(',')
-            .map((m) => m.trim())
-            .filter(Boolean) as Method[],
-        )
-      }
-      if (part.fieldname === 'methodAmounts') {
-        methodAmountsProvided = true
-        methodAmountsInCents.push(
-          ...String(part.value).split(',').map((n) => Number(n.trim())).filter((n) => !Number.isNaN(n)),
-        )
-      }
-      if (part.fieldname === 'comprovanteMethods') {
-        attachmentMethods = String(part.value).split(',').map((m) => {
-          const v = m.trim()
-          return v ? (v as Method) : null
-        })
-      }
-      if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
-      if (part.fieldname === 'note') note = String(part.value)
-    }
-  }
-
-  const addAttachments = paths.map((path, i) => ({ path, method: attachmentMethods[i] ?? null }))
-
   try {
+    for await (const part of request.parts()) {
+      if (part.type === 'file' && part.fieldname === 'comprovante') {
+        if (part.filename) {
+          paths.push(await storeComprovante(await part.toBuffer(), part.filename))
+        } else {
+          part.file.resume()
+        }
+      } else if (part.type === 'field') {
+        if (part.fieldname === 'amountInCents' && part.value) amountInCents = Number(part.value)
+        if (part.fieldname === 'methods') {
+          methodsProvided = true
+          methods.push(
+            ...String(part.value)
+              .split(',')
+              .map((m) => m.trim())
+              .filter(Boolean) as Method[],
+          )
+        }
+        if (part.fieldname === 'methodAmounts') {
+          methodAmountsProvided = true
+          methodAmountsInCents.push(
+            ...String(part.value).split(',').map((n) => Number(n.trim())).filter((n) => !Number.isNaN(n)),
+          )
+        }
+        if (part.fieldname === 'comprovanteMethods') {
+          attachmentMethods = String(part.value).split(',').map((m) => {
+            const v = m.trim()
+            return v ? (v as Method) : null
+          })
+        }
+        if (part.fieldname === 'receivedAt' && part.value) receivedAt = new Date(String(part.value))
+        if (part.fieldname === 'note') note = String(part.value)
+      }
+    }
+
+    const addAttachments = paths.map((path, i) => ({ path, method: attachmentMethods[i] ?? null }))
+
     const update = makeUpdateReceiptUseCase()
     const { receipt } = await update.execute({
       userId: request.user.sub,
