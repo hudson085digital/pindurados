@@ -177,9 +177,10 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
   const [editDesc, setEditDesc] = useState(sale.description ?? '')
   const [editCost, setEditCost] = useState(sale.productCostInCents)
   const [editDate, setEditDate] = useState(sale.saleDate.slice(0, 10))
-  // Reparcelamento (opcional): edita valor do produto + valor e data de cada parcela.
+  // Reparcelamento (opcional): você define o total da venda e o valor de cada
+  // parcela; a ÚLTIMA é calculada automaticamente para a soma bater com o total.
   const [reparcelar, setReparcelar] = useState(false)
-  const [editProductValue, setEditProductValue] = useState(sale.productValueInCents)
+  const [editTotal, setEditTotal] = useState(sale.totalInCents)
   const [parcels, setParcels] = useState<{ value: number; date: string }[]>([])
 
   function seedParcels() {
@@ -199,6 +200,13 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
     })
   }
 
+  // Valores finais: a última parcela = total − soma das demais (mínimo 0).
+  function computedParcelValues(): number[] {
+    if (!parcels.length) return []
+    const others = parcels.slice(0, -1).reduce((s, p) => s + p.value, 0)
+    return parcels.map((p, i) => (i === parcels.length - 1 ? Math.max(0, editTotal - others) : p.value))
+  }
+
   const { mutateAsync: saveSale, isPending: saving } = useMutation({
     mutationFn: () =>
       updateSale(sale.id, {
@@ -208,15 +216,17 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
         ...(reparcelar
           ? {
               type: 'MANUAL',
-              productValueInCents: editProductValue,
-              customInstallmentValuesInCents: parcels.map((p) => p.value),
+              productValueInCents: editTotal,
+              targetTotalInCents: editTotal,
+              customInstallmentValuesInCents: computedParcelValues(),
               dueDatesISO: parcels.map((p) => p.date),
             }
           : {}),
       }),
   })
 
-  const parcelsSum = parcels.reduce((s, p) => s + p.value, 0)
+  const computedValues = computedParcelValues()
+  const parcelsSum = computedValues.reduce((s, v) => s + v, 0)
 
   async function handleDelete() {
     if (!confirm('Excluir esta venda?')) return
@@ -296,7 +306,7 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                 setEditCost(sale.productCostInCents)
                 setEditDate(sale.saleDate.slice(0, 10))
                 setReparcelar(false)
-                setEditProductValue(sale.productValueInCents)
+                setEditTotal(sale.totalInCents)
                 seedParcels()
                 setEditOpen(true)
               }}
@@ -335,11 +345,12 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
               {reparcelar && (
                 <div className="space-y-3 rounded-md border p-3">
                   <p className="text-xs text-muted-foreground">
-                    Regenera as parcelas. O que já foi recebido é mantido e abatido do novo total.
+                    Você define o valor das parcelas; a última completa o total
+                    automaticamente. O que já foi recebido é mantido.
                   </p>
                   <div>
-                    <Label>Valor do produto (R$)</Label>
-                    <CurrencyInput valueInCents={editProductValue} onChangeCents={setEditProductValue} />
+                    <Label>Valor da venda (total)</Label>
+                    <CurrencyInput valueInCents={editTotal} onChangeCents={setEditTotal} />
                   </div>
                   <div>
                     <Label>Nº de parcelas</Label>
@@ -351,30 +362,35 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                     />
                   </div>
                   <div className="space-y-2">
-                    {parcels.map((p, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <span className="w-8 shrink-0 text-sm text-muted-foreground">{i + 1}ª</span>
-                        <CurrencyInput
-                          valueInCents={p.value}
-                          onChangeCents={(c) =>
-                            setParcels((prev) => prev.map((x, j) => (j === i ? { ...x, value: c } : x)))
-                          }
-                        />
-                        <Input
-                          type="date"
-                          className="w-40"
-                          value={p.date}
-                          onChange={(e) =>
-                            setParcels((prev) =>
-                              prev.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)),
-                            )
-                          }
-                        />
-                      </div>
-                    ))}
+                    {parcels.map((p, i) => {
+                      const isLast = i === parcels.length - 1
+                      return (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-8 shrink-0 text-sm text-muted-foreground">{i + 1}ª</span>
+                          <CurrencyInput
+                            valueInCents={isLast ? computedValues[i] : p.value}
+                            onChangeCents={(c) =>
+                              setParcels((prev) => prev.map((x, j) => (j === i ? { ...x, value: c } : x)))
+                            }
+                            disabled={isLast && parcels.length > 1}
+                          />
+                          <Input
+                            type="date"
+                            className="w-40"
+                            value={p.date}
+                            onChange={(e) =>
+                              setParcels((prev) =>
+                                prev.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)),
+                              )
+                            }
+                          />
+                        </div>
+                      )
+                    })}
                   </div>
-                  <p className="text-sm">
-                    Novo total: <strong>{formatCurrency(parcelsSum)}</strong>
+                  <p className={cn('text-sm', parcelsSum !== editTotal && 'text-destructive')}>
+                    Soma das parcelas: <strong>{formatCurrency(parcelsSum)}</strong> de{' '}
+                    {formatCurrency(editTotal)}
                   </p>
                 </div>
               )}

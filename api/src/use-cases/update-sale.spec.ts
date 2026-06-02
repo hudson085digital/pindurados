@@ -124,6 +124,31 @@ describe('UpdateSaleUseCase — reparcelamento', () => {
     ])
   })
 
+  it('valida que a soma das parcelas é igual ao total informado (018)', async () => {
+    await expect(() =>
+      sut.execute({
+        userId: USER,
+        saleId: 'sale-1',
+        type: 'MANUAL',
+        productValueInCents: 120000,
+        targetTotalInCents: 130000, // soma das parcelas (120000) != total
+        customInstallmentValuesInCents: [40000, 40000, 40000],
+      }),
+    ).rejects.toThrowError('soma das parcelas')
+  })
+
+  it('rejeita parcela com valor zero (018)', async () => {
+    await expect(() =>
+      sut.execute({
+        userId: USER,
+        saleId: 'sale-1',
+        type: 'MANUAL',
+        productValueInCents: 100000,
+        customInstallmentValuesInCents: [100000, 0],
+      }),
+    ).rejects.toThrowError('maior que zero')
+  })
+
   it('a alocação após reparcelar bate com serializeSale', async () => {
     const { sale } = await sut.execute({
       userId: USER,

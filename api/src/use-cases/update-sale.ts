@@ -81,6 +81,19 @@ export class UpdateSaleUseCase {
       customInstallmentValuesInCents: req.customInstallmentValuesInCents,
     })
 
+    // Valores definidos pelo usuário (sem cálculo automático de juros): cada parcela
+    // deve ser > 0 e a soma deve bater com o total da venda informado.
+    if (req.customInstallmentValuesInCents) {
+      if (req.customInstallmentValuesInCents.some((v) => !Number.isInteger(v) || v <= 0)) {
+        throw new BusinessRuleError('Cada parcela deve ser maior que zero.')
+      }
+      if (req.targetTotalInCents !== undefined && calc.totalInCents !== req.targetTotalInCents) {
+        throw new BusinessRuleError(
+          `A soma das parcelas deve ser igual ao valor da venda (${brl(req.targetTotalInCents)}).`,
+        )
+      }
+    }
+
     const alreadyReceived = sumReceipts(sale.receipts)
     if (calc.totalInCents < alreadyReceived) {
       throw new BusinessRuleError(
