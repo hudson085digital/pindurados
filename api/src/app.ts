@@ -33,7 +33,8 @@ app.register(fastifyJwt, {
 })
 
 app.register(fastifyCookie)
-app.register(fastifyMultipart)
+// Limite de 20MB por arquivo (fotos de celular); comprovantes são otimizados depois.
+app.register(fastifyMultipart, { limits: { fileSize: 20 * 1024 * 1024 } })
 
 // Comprovantes acessíveis em /comprovantes/<arquivo>
 app.register(fastifyStatic, {

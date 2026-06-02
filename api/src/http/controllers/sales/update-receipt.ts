@@ -7,7 +7,7 @@ import { pipeline } from 'node:stream/promises'
 import { makeUpdateReceiptUseCase } from '@/use-cases/factories/make-update-receipt-use-case'
 import { ResourceNotFoundError } from '@/use-cases/errors/resource-not-found-error'
 import { BusinessRuleError } from '@/use-cases/errors/business-rule-error'
-import { UPLOADS_DIR } from '@/lib/uploads'
+import { UPLOADS_DIR, optimizeUpload } from '@/lib/uploads'
 
 // Edita um recebimento. Multipart/form-data: "comprovante" (opcional — mantém o
 // atual se ausente) + amountInCents?, method?, receivedAt?, note?.
@@ -35,7 +35,7 @@ export async function updateReceipt(request: FastifyRequest, reply: FastifyReply
       if (part.filename) {
         const filename = `${randomUUID()}${extname(part.filename)}`
         await pipeline(part.file, createWriteStream(join(UPLOADS_DIR, filename)))
-        paths.push(filename)
+        paths.push(await optimizeUpload(filename))
       } else {
         part.file.resume()
       }
