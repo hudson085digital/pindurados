@@ -55,8 +55,9 @@ export function serializeSale(sale: SaleWithDetails) {
     .slice()
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
 
-  // Lucro previsto = total acordado da venda (com juros) − custo do produto.
-  const profitInCents = sale.totalInCents - sale.productCostInCents
+  // Lucro previsto = tudo que o cliente paga (entrada + total acordado com juros)
+  // − custo do produto. A entrada conta como receita, então entra no lucro.
+  const profitInCents = sale.downPaymentInCents + sale.totalInCents - sale.productCostInCents
 
   // Recebimentos positivos, não estornados e SEM comprovante (spec 019): alerta.
   const reversedIds = new Set(

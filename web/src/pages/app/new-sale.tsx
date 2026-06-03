@@ -473,8 +473,12 @@ export function NewSale() {
             </div>
             {reaisToCents(productCost) > 0 && (
               <div className="mt-1 flex justify-between text-sm font-semibold text-primary">
-                <span>Lucro previsto (total − custo)</span>
-                <span>{formatCurrency(preview.totalInCents - reaisToCents(productCost))}</span>
+                <span>Lucro previsto (entrada + total − custo)</span>
+                <span>
+                  {formatCurrency(
+                    preview.downPaymentInCents + preview.totalInCents - reaisToCents(productCost),
+                  )}
+                </span>
               </div>
             )}
             <p className="mt-1 font-semibold text-primary">

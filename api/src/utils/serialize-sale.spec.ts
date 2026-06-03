@@ -35,7 +35,7 @@ function receipt(amountInCents: number, createdAt: Date) {
 }
 
 describe('serializeSale', () => {
-  it('lucro previsto = total − custo (US1 custo/lucro)', () => {
+  it('lucro previsto = entrada + total − custo (sem entrada)', () => {
     const sale = InMemorySalesRepository.makeSale({
       id: 'sale-1',
       productCostInCents: 60000,
@@ -44,6 +44,21 @@ describe('serializeSale', () => {
     })
     const s = serializeSale(sale)
     expect(s.profitInCents).toBe(40000)
+  })
+
+  it('lucro previsto inclui a entrada (entrada conta como receita)', () => {
+    // Cenário do print: produto 2600, entrada 1300, restante 1300 + 50% juros = 1950,
+    // custo 2300. Lucro = 1300 (entrada) + 1950 (total) − 2300 (custo) = 950.
+    const sale = InMemorySalesRepository.makeSale({
+      id: 'sale-1',
+      productValueInCents: 260000,
+      downPaymentInCents: 130000,
+      productCostInCents: 230000,
+      totalInCents: 195000,
+      installments: [inst(1, 39000), inst(2, 39000), inst(3, 39000), inst(4, 39000), inst(5, 39000)],
+    })
+    const s = serializeSale(sale)
+    expect(s.profitInCents).toBe(95000)
   })
 
   it('deriva status/saldo das parcelas a partir dos recebimentos (em ordem)', () => {
