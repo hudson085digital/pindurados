@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Trash2, Plus } from 'lucide-react'
+import { Trash2, Plus, UserPlus } from 'lucide-react'
 import { fetchCustomers } from '@/api/customers'
 import { calculateSale, createSale, CalculateBody } from '@/api/sales'
 import { SaleType, CalculationResult } from '@/api/types'
@@ -10,6 +10,7 @@ import { formatCurrency, reaisToCents } from '@/lib/utils'
 import { queryClient } from '@/lib/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Label } from '@/components/ui/label'
@@ -224,13 +225,16 @@ export function NewSale() {
 
   if (!customers?.length) {
     return (
-      <div className="py-10 text-center text-muted-foreground">
-        <p className="mb-2 text-4xl">👤</p>
-        Cadastre um devedor antes de registrar uma venda.
-        <Button className="mt-4 w-full" onClick={() => navigate('/devedores')}>
-          Ir para devedores
-        </Button>
-      </div>
+      <EmptyState
+        icon={UserPlus}
+        title="Cadastre um devedor primeiro"
+        description="Toda venda fiado pertence a um cliente. Cadastre quem vai comprar antes de registrar a venda."
+        action={
+          <Button className="w-full" onClick={() => navigate('/devedores')}>
+            Ir para devedores
+          </Button>
+        }
+      />
     )
   }
 
@@ -242,7 +246,7 @@ export function NewSale() {
         <div>
           <Label>Devedor *</Label>
           <select
-            className="flex h-11 w-full rounded-md border border-input bg-card px-3"
+            className="flex h-11 w-full rounded-md border border-input bg-card px-3 transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
           >
@@ -469,7 +473,7 @@ export function NewSale() {
             />
             <div className="mt-2 flex justify-between border-t border-dashed border-primary/30 pt-2 text-lg font-bold">
               <span>Total a pagar</span>
-              <span>{formatCurrency(preview.totalInCents)}</span>
+              <span className="tabular-nums">{formatCurrency(preview.totalInCents)}</span>
             </div>
             {reaisToCents(productCost) > 0 && (
               <div className="mt-1 flex justify-between text-sm font-semibold text-primary">
@@ -509,7 +513,7 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between py-0.5 text-sm">
       <span>{label}</span>
-      <span>{value}</span>
+      <span className="tabular-nums">{value}</span>
     </div>
   )
 }

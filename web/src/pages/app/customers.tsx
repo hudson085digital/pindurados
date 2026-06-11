@@ -5,11 +5,14 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { Users, ChevronRight } from 'lucide-react'
 import { fetchCustomers, createCustomer } from '@/api/customers'
 import { formatCurrency, cn } from '@/lib/utils'
 import { queryClient } from '@/lib/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { Label } from '@/components/ui/label'
@@ -104,35 +107,50 @@ export function Customers() {
         </DialogContent>
       </Dialog>
 
-      {isLoading && (
-        <p className="py-10 text-center text-muted-foreground">Carregando…</p>
-      )}
+      {isLoading &&
+        Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <Skeleton className="h-5 w-16" />
+            </CardContent>
+          </Card>
+        ))}
 
       {customers?.length === 0 && (
-        <div className="py-10 text-center text-muted-foreground">
-          <p className="mb-2 text-4xl">👥</p>
-          Nenhum devedor cadastrado ainda.
-        </div>
+        <EmptyState
+          icon={Users}
+          title="Nenhum devedor ainda"
+          description="Cadastre quem compra fiado para começar a registrar vendas e acompanhar o que cada um deve."
+        />
       )}
 
       {customers?.map((c) => (
-        <Link key={c.id} to={`/devedores/${c.id}`}>
-          <Card className="transition active:scale-[0.99]">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="font-semibold">{c.name}</p>
-                <p className="text-sm text-muted-foreground">
+        <Link
+          key={c.id}
+          to={`/devedores/${c.id}`}
+          className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <Card className="transition-[transform,box-shadow] hover:shadow-md active:scale-[0.99]">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">{c.name}</p>
+                <p className="truncate text-sm text-muted-foreground">
                   {c.salesCount} venda(s){c.phone ? ` · ${c.phone}` : ''}
                 </p>
               </div>
               <span
                 className={cn(
-                  'text-lg font-bold',
+                  'shrink-0 text-lg font-bold tabular-nums',
                   c.balanceInCents > 0 ? 'text-destructive' : 'text-primary',
                 )}
               >
                 {formatCurrency(c.balanceInCents)}
               </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </CardContent>
           </Card>
         </Link>

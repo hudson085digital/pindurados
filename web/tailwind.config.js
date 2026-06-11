@@ -9,6 +9,21 @@ export default {
       screens: { '2xl': '768px' },
     },
     extend: {
+      fontFamily: {
+        sans: [
+          'Inter',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
+      },
+      boxShadow: {
+        sm: '0 1px 2px 0 hsl(200 24% 14% / 0.04), 0 1px 3px 0 hsl(200 24% 14% / 0.06)',
+        md: '0 4px 12px -2px hsl(200 24% 14% / 0.10), 0 2px 6px -2px hsl(200 24% 14% / 0.08)',
+        lg: '0 12px 32px -8px hsl(200 24% 14% / 0.18), 0 4px 12px -4px hsl(200 24% 14% / 0.10)',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

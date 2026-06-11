@@ -4,29 +4,88 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 168 22% 98%;
+    --foreground: 200 24% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --primary: 175 84% 26%;
+    --card-foreground: 200 24% 14%;
+    --primary: 162 72% 30%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --destructive: 0 72% 51%;
+    --secondary: 168 28% 95%;
+    --secondary-foreground: 200 20% 22%;
+    --muted: 168 24% 96%;
+    --muted-foreground: 205 14% 40%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 175 84% 26%;
+    --border: 168 16% 90%;
+    --input: 168 16% 88%;
+    --ring: 162 72% 34%;
     --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 200 28% 8%;
+    --foreground: 168 18% 92%;
+    --card: 200 24% 11%;
+    --card-foreground: 168 18% 92%;
+    --primary: 160 58% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 18% 18%;
+    --secondary-foreground: 168 16% 88%;
+    --muted: 200 18% 16%;
+    --muted-foreground: 195 13% 64%;
+    --destructive: 0 66% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 200 16% 20%;
+    --input: 200 16% 22%;
+    --ring: 160 58% 52%;
   }
 
   * {
     @apply border-border;
   }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv05', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Foco de teclado visível e consistente (nunca removido sem substituto). */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@layer utilities {
+  /* Algarismos tabulares para valores e datas alinharem em coluna (reflexo de razão). */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Respeita quem pediu menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

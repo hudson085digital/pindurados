@@ -8,7 +8,8 @@ import { signUp, signIn } from '@/api/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Logo } from '@/components/ui/logo'
 
 const signUpForm = z.object({
   name: z.string().min(1, 'Informe o nome'),
@@ -43,27 +44,28 @@ export function SignUp() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader className="items-center text-center">
-        <div className="text-3xl">📒</div>
-        <CardTitle className="text-2xl">Criar conta</CardTitle>
-        <p className="text-sm text-muted-foreground">Comece a controlar suas promissórias</p>
+    <Card className="w-full max-w-sm shadow-md">
+      <CardHeader className="items-center pb-2 text-center">
+        <Logo size="lg" className="flex-col gap-2" />
+        <p className="pt-1 text-sm text-muted-foreground">
+          Comece a controlar suas promissórias
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleSignUp)} className="space-y-4">
           <div>
             <Label htmlFor="name">Nome</Label>
-            <Input id="name" {...register('name')} />
+            <Input id="name" autoComplete="name" placeholder="Seu nome" {...register('name')} />
             {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
           </div>
           <div>
             <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" {...register('email')} />
+            <Input id="email" type="email" autoComplete="email" placeholder="voce@email.com" {...register('email')} />
             {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
           </div>
           <div>
             <Label htmlFor="password">Senha</Label>
-            <Input id="password" type="password" {...register('password')} />
+            <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
             {errors.password && (
               <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
             )}

@@ -7,7 +7,7 @@ import { queryClient } from './lib/react-query'
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster richColors position="top-center" />
+      <Toaster richColors position="top-center" theme="system" closeButton />
       <RouterProvider router={router} />
     </QueryClientProvider>
   )

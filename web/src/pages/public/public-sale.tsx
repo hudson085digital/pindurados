@@ -7,6 +7,8 @@ import { ReceiptMethod } from '@/api/types'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/ui/logo'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const METHOD_LABEL: Record<ReceiptMethod, string> = {
   PIX: 'Pix',
@@ -38,9 +40,15 @@ export function PublicSale() {
 
   if (isLoading) {
     return (
-      <Centered>
-        <p className="text-muted-foreground">Carregando…</p>
-      </Centered>
+      <div className="mx-auto min-h-[100dvh] w-full max-w-md space-y-3 p-4">
+        <div className="flex flex-col items-center gap-2 pt-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-52" />
+        </div>
+        <Skeleton className="h-36 w-full rounded-lg" />
+        <Skeleton className="h-20 w-full rounded-lg" />
+        <Skeleton className="h-16 w-full rounded-lg" />
+      </div>
     )
   }
 
@@ -66,16 +74,16 @@ export function PublicSale() {
   }
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-md space-y-3 bg-background p-4">
+    <div className="mx-auto min-h-[100dvh] w-full max-w-md space-y-3 bg-background p-4">
       {/* Cabeçalho */}
-      <div className="pt-2 text-center">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Crediário
-        </p>
-        <p className="text-lg font-semibold">{sale.saleDescription || 'Sua compra'}</p>
-        <p className="text-sm text-muted-foreground">
-          {sale.customerName} · credor: {sale.creditorName}
-        </p>
+      <div className="flex flex-col items-center gap-2 pt-2 text-center">
+        <Logo />
+        <div>
+          <p className="text-lg font-semibold">{sale.saleDescription || 'Sua compra'}</p>
+          <p className="text-sm text-muted-foreground">
+            {sale.customerName} · credor: {sale.creditorName}
+          </p>
+        </div>
       </div>
 
       {/* Resumo */}
@@ -91,18 +99,20 @@ export function PublicSale() {
               <span className="font-semibold">
                 {sale.settled ? 'Status' : 'Saldo devedor'}
               </span>
-              <span
-                className={cn(
-                  'text-lg font-bold',
-                  sale.settled
-                    ? 'text-primary'
-                    : sale.balanceInCents > 0
-                      ? 'text-destructive'
-                      : 'text-primary',
-                )}
-              >
-                {sale.settled ? 'QUITADA ✅' : formatCurrency(sale.balanceInCents)}
-              </span>
+              {sale.settled ? (
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                  Quitada
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    'text-lg font-bold tabular-nums',
+                    sale.balanceInCents > 0 ? 'text-destructive' : 'text-primary',
+                  )}
+                >
+                  {formatCurrency(sale.balanceInCents)}
+                </span>
+              )}
             </div>
           </div>
         </CardContent>
@@ -150,9 +160,9 @@ export function PublicSale() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-bold">{formatCurrency(inst.amountInCents)}</p>
+                <p className="font-bold tabular-nums">{formatCurrency(inst.amountInCents)}</p>
                 {inst.balanceInCents > 0 && inst.balanceInCents !== inst.amountInCents && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground tabular-nums">
                     falta {formatCurrency(inst.balanceInCents)}
                   </p>
                 )}
@@ -244,7 +254,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
+      <span className="font-medium tabular-nums">{value}</span>
     </div>
   )
 }

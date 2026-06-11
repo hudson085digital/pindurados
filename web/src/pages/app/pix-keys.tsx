@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Star, Trash2 } from 'lucide-react'
+import { Star, Trash2, KeyRound } from 'lucide-react'
 import {
   fetchPixKeys,
   createPixKey,
@@ -16,6 +16,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { PhoneInput } from '@/components/ui/phone-input'
 import {
   Dialog,
@@ -133,13 +135,25 @@ export function PixKeys() {
         </DialogContent>
       </Dialog>
 
-      {isLoading && <p className="py-10 text-center text-muted-foreground">Carregando…</p>}
+      {isLoading &&
+        Array.from({ length: 2 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-52" />
+              </div>
+              <Skeleton className="h-8 w-8 rounded-md" />
+            </CardContent>
+          </Card>
+        ))}
 
       {keys?.length === 0 && (
-        <div className="py-10 text-center text-muted-foreground">
-          <p className="mb-2 text-4xl">🔑</p>
-          Nenhuma chave Pix cadastrada. A primeira vira padrão automaticamente.
-        </div>
+        <EmptyState
+          icon={KeyRound}
+          title="Nenhuma chave Pix"
+          description="Cadastre sua chave para que ela apareça na página pública da venda. A primeira vira padrão automaticamente."
+        />
       )}
 
       {keys?.map((k) => (

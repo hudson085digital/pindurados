@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ChevronLeft, Undo2, Send, Bell, Pencil, Link2, Copy, Trash2 } from 'lucide-react'
+import { ChevronLeft, Undo2, Send, Bell, Pencil, Link2, Copy, Trash2, Receipt as ReceiptIcon } from 'lucide-react'
 import { getCustomerDetails, deleteCustomer, updateCustomer } from '@/api/customers'
 import { deleteSale, getChargeMessage, updateSale } from '@/api/sales'
 import {
@@ -22,6 +22,8 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { queryClient } from '@/lib/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Label } from '@/components/ui/label'
@@ -68,7 +70,27 @@ export function CustomerDetails() {
   }
 
   if (isLoading || !data) {
-    return <p className="py-10 text-center text-muted-foreground">Carregando…</p>
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-16" />
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+            <Skeleton className="h-9 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   const { customer, sales, balanceInCents } = data
@@ -90,7 +112,7 @@ export function CustomerDetails() {
             </div>
             <span
               className={cn(
-                'text-lg font-bold',
+                'text-lg font-bold tabular-nums',
                 balanceInCents > 0 ? 'text-destructive' : 'text-primary',
               )}
             >
@@ -131,7 +153,16 @@ export function CustomerDetails() {
       </p>
 
       {sales.length === 0 && (
-        <p className="py-6 text-center text-muted-foreground">Nenhuma venda registrada.</p>
+        <EmptyState
+          icon={ReceiptIcon}
+          title="Nenhuma venda ainda"
+          description="Registre a primeira venda fiado deste cliente para acompanhar parcelas e recebimentos."
+          action={
+            <Button asChild className="w-full">
+              <Link to={`/nova-venda?customerId=${customer.id}`}>+ Nova venda</Link>
+            </Button>
+          }
+        />
       )}
 
       {sales.map((sale) => (
@@ -272,14 +303,20 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
               · {formatDate(sale.saleDate)}
             </p>
           </div>
-          <span
-            className={cn(
-              'font-bold',
-              sale.balanceInCents > 0 ? 'text-destructive' : 'text-primary',
-            )}
-          >
-            {sale.settled ? 'QUITADA' : formatCurrency(sale.balanceInCents)}
-          </span>
+          {sale.settled ? (
+            <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              Quitada
+            </span>
+          ) : (
+            <span
+              className={cn(
+                'shrink-0 font-bold tabular-nums',
+                sale.balanceInCents > 0 ? 'text-destructive' : 'text-primary',
+              )}
+            >
+              {formatCurrency(sale.balanceInCents)}
+            </span>
+          )}
         </div>
 
         <p className="text-sm text-muted-foreground">
@@ -1030,7 +1067,7 @@ function AttachmentRows({
             }
           />
           <select
-            className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+            className="h-9 rounded-md border border-input bg-card px-2 text-sm transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             value={row.method}
             onChange={(e) =>
               setRows((prev) =>
