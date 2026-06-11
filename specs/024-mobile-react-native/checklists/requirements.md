@@ -31,10 +31,17 @@
 
 ## Notes
 
-- Decisões estratégicas já tomadas antes da spec (registradas em Assumptions): seguir com RN
-  agora (prioridade sobre a 022-PWA), extrair `@pindurados/core`, ambiente local nesta fase,
-  refresh token no corpo para mobile. Não há `[NEEDS CLARIFICATION]` pendente.
-- Nomes de stack (Expo, NativeWind etc.) aparecem **apenas** em Assumptions/Out of Scope como
-  contexto herdado do estudo, não como requisito funcional — os FRs permanecem agnósticos.
+- **Pivô de arquitetura (2026-06-11)**: a spec deixou de ser "MVP online reusando o servidor" e
+  passou a **app local-first standalone**: tudo no aparelho, sem servidor/banco/bucket, sem login,
+  **sem Login com Google**, com backup/restauração por **arquivo** (estilo WhatsApp, sem OAuth).
+  Decisões registradas em Assumptions. Não há `[NEEDS CLARIFICATION]` pendente.
+- **Tensão resolvida por decisão** (sinalizar ao usuário): "backup via Google" + "sem Login com
+  Google" → backup = arquivo exportável/importável via compartilhamento nativo (usuário salva no
+  Drive manualmente) + auto-backup do SO no Android. Sync automático na nuvem fica fora do escopo.
+- `@pindurados/core` (regra de dinheiro compartilhada web↔mobile) segue válido e **mais
+  necessário** — sem servidor, o cálculo roda no aparelho com a mesma fórmula do web. O ajuste de
+  refresh token no backend foi **descartado** (mobile não usa servidor).
+- Nomes de stack (Expo, SQLite, NativeWind) aparecem **apenas** em Assumptions/Out of Scope como
+  contexto, não como requisito funcional — os FRs permanecem agnósticos.
 - Pronta para `/speckit-plan`.
 </content>
