@@ -13,6 +13,7 @@ import { salesRoutes } from '@/http/controllers/sales/routes'
 import { installmentsRoutes } from '@/http/controllers/installments/routes'
 import { reportsRoutes } from '@/http/controllers/reports/routes'
 import { pixKeysRoutes } from '@/http/controllers/pix-keys/routes'
+import { publicRoutes } from '@/http/controllers/public/routes'
 
 export const app = fastify()
 
@@ -56,6 +57,7 @@ if (usingSupabaseStorage) {
 app.get('/health', () => ({ status: 'ok' }))
 
 // Rotas
+app.register(publicRoutes)
 app.register(usersRoutes)
 app.register(customersRoutes)
 app.register(salesRoutes)

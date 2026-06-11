@@ -11,6 +11,7 @@ export async function profile(request: FastifyRequest, reply: FastifyReply) {
       name: user.name,
       email: user.email,
       role: user.role,
+      contactPhone: user.contactPhone,
       createdAt: user.createdAt,
     },
   })

@@ -2,9 +2,15 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ChevronLeft, Undo2, Send, Bell, Pencil } from 'lucide-react'
+import { ChevronLeft, Undo2, Send, Bell, Pencil, Link2, Copy, Trash2 } from 'lucide-react'
 import { getCustomerDetails, deleteCustomer, updateCustomer } from '@/api/customers'
 import { deleteSale, getChargeMessage, updateSale } from '@/api/sales'
+import {
+  createShareLink,
+  getShareLink,
+  revokeShareLink,
+  buildPublicUrl,
+} from '@/api/share-links'
 import { createReceipt, updateReceipt, voidReceipt, AttachmentUpload } from '@/api/receipts'
 import {
   markInstallmentLate,
@@ -411,11 +417,117 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
 
         <ReceiptsSection sale={sale} onChange={onChange} />
 
+        <ShareLinkSection saleId={sale.id} />
+
         <Button size="sm" variant="ghost" className="text-destructive" onClick={handleDelete}>
           Excluir venda
         </Button>
       </CardContent>
     </Card>
+  )
+}
+
+function ShareLinkSection({ saleId }: { saleId: string }) {
+  const { data: state, isLoading } = useQuery({
+    queryKey: ['share-link', saleId],
+    queryFn: () => getShareLink(saleId),
+  })
+
+  const { mutateAsync: generate, isPending: generating } = useMutation({
+    mutationFn: () => createShareLink(saleId),
+  })
+  const { mutateAsync: revoke, isPending: revoking } = useMutation({
+    mutationFn: () => revokeShareLink(saleId),
+  })
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ['share-link', saleId] })
+  }
+
+  const isActive = state?.exists && state.status === 'active' && state.token
+  const publicUrl = isActive ? buildPublicUrl(state.token!) : null
+
+  async function handleGenerate() {
+    try {
+      const { token } = await generate()
+      await navigator.clipboard.writeText(buildPublicUrl(token)).catch(() => {})
+      toast.success('Link gerado e copiado!')
+      invalidate()
+    } catch {
+      toast.error('Não foi possível gerar o link.')
+    }
+  }
+
+  async function handleCopy() {
+    if (!publicUrl) return
+    await navigator.clipboard.writeText(publicUrl)
+    toast.success('Link copiado!')
+  }
+
+  async function handleRevoke() {
+    if (!confirm('Revogar o link? Quem tiver o endereço deixará de ver a venda.')) return
+    try {
+      await revoke()
+      toast.success('Link revogado.')
+      invalidate()
+    } catch {
+      toast.error('Não foi possível revogar.')
+    }
+  }
+
+  return (
+    <div className="rounded-md bg-secondary/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Link2 className="h-3.5 w-3.5" /> Link público
+        </p>
+        {state && !isActive && (
+          <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            {state.exists ? 'Gerar novo link' : 'Gerar link'}
+          </Button>
+        )}
+      </div>
+
+      {isLoading && <p className="text-xs text-muted-foreground">Carregando…</p>}
+
+      {state && !state.exists && (
+        <p className="text-xs text-muted-foreground">
+          Gere um link para o devedor acompanhar esta venda sem login.
+        </p>
+      )}
+
+      {state?.exists && !isActive && (
+        <p className="text-xs text-muted-foreground">
+          Link {state.status === 'revoked' ? 'revogado' : 'expirado'}. Gere um novo para
+          compartilhar.
+        </p>
+      )}
+
+      {isActive && publicUrl && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 rounded-md border bg-card p-2">
+            <span className="min-w-0 flex-1 truncate font-mono text-xs">{publicUrl}</span>
+            <Button size="sm" variant="outline" onClick={handleCopy}>
+              <Copy className="mr-1 h-4 w-4" /> Copiar
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleGenerate} disabled={generating}>
+              Gerar novo
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive"
+              onClick={handleRevoke}
+              disabled={revoking}
+            >
+              <Trash2 className="mr-1 h-4 w-4" /> Revogar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

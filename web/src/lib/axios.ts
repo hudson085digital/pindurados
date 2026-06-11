@@ -5,6 +5,13 @@ export const api = axios.create({
   withCredentials: true,
 })
 
+// Cliente PÚBLICO (023): sem cookies, sem Bearer e sem redirecionar no 401.
+// Usado pela página /p/:token, que não depende de login.
+export const publicApi = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: false,
+})
+
 // Anexa o token salvo a cada requisição.
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('pindurados.token')

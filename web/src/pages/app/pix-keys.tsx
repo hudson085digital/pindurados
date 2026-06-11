@@ -8,6 +8,7 @@ import {
   setDefaultPixKey,
   deletePixKey,
 } from '@/api/pix-keys'
+import { getProfile, updateProfile } from '@/api/auth'
 import { PixKeyType } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { queryClient } from '@/lib/react-query'
@@ -15,6 +16,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PhoneInput } from '@/components/ui/phone-input'
 import {
   Dialog,
   DialogContent,
@@ -79,6 +81,12 @@ export function PixKeys() {
 
   return (
     <div className="space-y-3">
+      <ContactCard />
+
+      <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Chaves Pix
+      </p>
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button className="w-full">+ Nova chave Pix</Button>
@@ -164,5 +172,56 @@ export function PixKeys() {
         </Card>
       ))}
     </div>
+  )
+}
+
+// Contato do credor (023): telefone que aparece na página pública do devedor
+// como botão "Falar com o credor" (WhatsApp). Opcional.
+function ContactCard() {
+  const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: getProfile })
+  const [phone, setPhone] = useState('')
+  const [dirty, setDirty] = useState(false)
+
+  // Sincroniza o input quando o perfil carrega (sem sobrescrever a edição).
+  if (!dirty && profile && phone === '' && profile.contactPhone) {
+    setPhone(profile.contactPhone)
+  }
+
+  const { mutateAsync: save, isPending } = useMutation({ mutationFn: updateProfile })
+
+  async function handleSave() {
+    try {
+      await save({ contactPhone: phone || null })
+      toast.success('Contato atualizado.')
+      setDirty(false)
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
+    } catch {
+      toast.error('Não foi possível salvar o contato.')
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="space-y-2 p-4">
+        <Label>Seu WhatsApp (para o devedor falar com você)</Label>
+        <p className="text-xs text-muted-foreground">
+          Aparece como botão na página pública da venda. Deixe em branco para ocultar.
+        </p>
+        <div className="flex gap-2">
+          <PhoneInput
+            value={phone}
+            onChangeValue={(v) => {
+              setPhone(v)
+              setDirty(true)
+            }}
+            placeholder="(XX) XXXXX-XXXX"
+            className="flex-1"
+          />
+          <Button onClick={handleSave} disabled={isPending || !dirty}>
+            Salvar
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

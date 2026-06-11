@@ -9,8 +9,14 @@ import { Customers } from './pages/app/customers'
 import { CustomerDetails } from './pages/app/customer-details'
 import { NewSale } from './pages/app/new-sale'
 import { PixKeys } from './pages/app/pix-keys'
+import { PublicSale } from './pages/public/public-sale'
 
 export const router = createBrowserRouter([
+  // Página pública do devedor (023) — FORA do guard de login e do layout do app.
+  {
+    path: '/p/:token',
+    element: <PublicSale />,
+  },
   {
     path: '/',
     element: (

@@ -24,6 +24,8 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   role         Role     @default(ADMIN)
+  // Telefone do credor para o devedor falar no WhatsApp pela página pública (023). Opcional.
+  contactPhone String?  @map("contact_phone")
   createdAt    DateTime @default(now()) @map("created_at")
 
   customers Customer[]
@@ -98,8 +100,25 @@ model Sale {
 
   installments Installment[]
   receipts     Receipt[]
+  shareLink    SaleShareLink?
 
   @@map("sales")
+}
+
+// Link público compartilhável de UMA venda (023). O devedor abre sem login.
+// Estados derivados: ativo (não revogado e não expirado) · revogado · expirado.
+// Regenerar = rotaciona o token e zera revoked/expiresAt.
+model SaleShareLink {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  revoked   Boolean   @default(false)
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  saleId String @unique @map("sale_id")
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("sale_share_links")
 }
 
 // Parcela

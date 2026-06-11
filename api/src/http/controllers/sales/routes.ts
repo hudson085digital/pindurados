@@ -9,6 +9,7 @@ import { createReceipt } from './create-receipt'
 import { updateReceipt } from './update-receipt'
 import { voidReceipt } from './void-receipt'
 import { chargeMessage } from './charge-message'
+import { createShareLink, getShareLink, revokeShareLink } from './share-link'
 
 export async function salesRoutes(app: FastifyInstance) {
   app.addHook('onRequest', verifyJwt)
@@ -26,4 +27,9 @@ export async function salesRoutes(app: FastifyInstance) {
 
   // Mensagem de cobrança
   app.get('/sales/:saleId/charge-message', chargeMessage)
+
+  // Link público da venda (gerar/rotacionar, estado, revogar) — 023
+  app.post('/sales/:id/share-link', createShareLink)
+  app.get('/sales/:id/share-link', getShareLink)
+  app.delete('/sales/:id/share-link', revokeShareLink)
 }

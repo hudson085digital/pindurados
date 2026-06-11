@@ -21,9 +21,20 @@ export class InMemoryUsersRepository implements UsersRepository {
       email: data.email,
       passwordHash: data.passwordHash,
       role: data.role ?? 'ADMIN',
+      contactPhone: (data.contactPhone as string | null | undefined) ?? null,
       createdAt: new Date(),
     }
     this.items.push(user)
+    return user
+  }
+
+  async update(id: string, data: Prisma.UserUpdateInput) {
+    const user = this.items.find((item) => item.id === id)
+    if (!user) throw new Error('User not found')
+    if (data.name !== undefined) user.name = data.name as string
+    if (data.contactPhone !== undefined) {
+      user.contactPhone = data.contactPhone as string | null
+    }
     return user
   }
 }
