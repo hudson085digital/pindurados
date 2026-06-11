@@ -49,10 +49,10 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 - [x] T016 [P] Implementar o tema em `mobile/src/theme/tokens.ts` + preset em `mobile/tailwind.config.js` portando os tokens HSL claro/escuro de `web/src/index.css`; `useColorScheme`.
 - [x] T017 [P] Inicializar o banco em `mobile/src/data/db.ts` (abre `expo-sqlite`, roda migrations) e criar `mobile/src/data/migrations/0001_init.ts` com o schema de `data-model.md` (tabelas + `meta.schema_version`).
-- [ ] T018 [P] Helper de arquivos em `mobile/src/data/files.ts` (garante `documentDirectory/comprovantes/`, salvar/ler/remover, compressão via `expo-image-manipulator`).
-- [ ] T019 [P] Wrappers de derivação em `mobile/src/data/derive.ts` usando `@pindurados/core/calc` (status/saldo de parcela e venda) + `mobile/src/lib/format.ts` reexportando `@pindurados/core/format`.
+- [x] T018 [P] Helper de arquivos em `mobile/src/data/files.ts` (garante `documentDirectory/comprovantes/`, salvar/ler/remover, compressão via `expo-image-manipulator`).
+- [x] T019 [P] Wrappers de derivação em `mobile/src/data/derive.ts` usando `@pindurados/core/calc` (status/saldo de parcela e venda) + `mobile/src/lib/format.ts` reexportando `@pindurados/core/format`.
 - [x] T020 Provedores em `mobile/app/_layout.tsx`: QueryClientProvider, ThemeProvider, `Toast`, e o Tab navigator (Resumo/Devedores/Nova venda/Pix/Backup) com a navbar nativa.
-- [ ] T021 [P] Primitivos de UI nativos em `mobile/src/components/ui/`: `button.tsx`, `card.tsx`, `input.tsx`, `skeleton.tsx`, `empty-state.tsx`, `tag.tsx`, `logo.tsx` (espelham os do web, em `View/Text/Pressable`).
+- [x] T021 [P] Primitivos de UI nativos em `mobile/src/components/ui/`: `button.tsx`, `card.tsx`, `input.tsx`, `skeleton.tsx`, `empty-state.tsx`, `tag.tsx`, `logo.tsx` (espelham os do web, em `View/Text/Pressable`).
 
 **Checkpoint**: core publicado no workspace e com paridade verde; api/web sem regressão; app abre com tabs, tema e banco inicializado.
 
@@ -64,14 +64,14 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 **Independent Test**: em modo avião, cadastrar devedor + venda, fechar/reabrir e confirmar persistência; Resumo reflete os dados.
 
-- [ ] T022 [P] [US1] `settingsRepo` em `mobile/src/data/repositories/settings.ts` (get/update/touchLastBackup; cria singleton).
-- [ ] T023 [P] [US1] `customersRepo` em `mobile/src/data/repositories/customers.ts` (list com saldo derivado, get, create, update, remove, setAutoReminder).
-- [ ] T024 [US1] `dashboardRepo.summary()` em `mobile/src/data/repositories/dashboard.ts` (agregações locais + derivação via core).
+- [x] T022 [P] [US1] `settingsRepo` em `mobile/src/data/repositories/settings.ts` (get/update/touchLastBackup; cria singleton).
+- [x] T023 [P] [US1] `customersRepo` em `mobile/src/data/repositories/customers.ts` (list com saldo derivado, get, create, update, remove, setAutoReminder).
+- [x] T024 [US1] `dashboardRepo.summary()` em `mobile/src/data/repositories/dashboard.ts` (agregações locais + derivação via core).
 - [ ] T025 [P] [US1] Teste unit do `customersRepo` e do cálculo de saldo em `mobile/src/data/repositories/__tests__/customers.spec.ts`.
-- [ ] T026 [US1] Tela Resumo em `mobile/app/index.tsx` (cards de indicadores tabulares + estados loading/empty via Skeleton/EmptyState).
-- [ ] T027 [US1] Tela Devedores (lista + busca) em `mobile/app/devedores/index.tsx` com EmptyState que ensina o primeiro cadastro.
-- [ ] T028 [US1] Form "Novo devedor" (sheet/modal) em `mobile/src/components/customers/new-customer-sheet.tsx` (RHF+Zod, máscara de telefone do core).
-- [ ] T029 [US1] Ligar React Query (queries `['dashboard']`, `['customers']`) aos repos e invalidação nas mutations.
+- [x] T026 [US1] Tela Resumo em `mobile/app/index.tsx` (cards de indicadores tabulares + estados loading/empty via Skeleton/EmptyState).
+- [x] T027 [US1] Tela Devedores (lista + busca) em `mobile/app/devedores/index.tsx` com EmptyState que ensina o primeiro cadastro.
+- [x] T028 [US1] Form "Novo devedor" (sheet/modal) em `mobile/src/components/customers/new-customer-sheet.tsx` (RHF+Zod, máscara de telefone do core).
+- [x] T029 [US1] Ligar React Query (queries `['dashboard']`, `['customers']`) aos repos e invalidação nas mutations.
 
 **Checkpoint**: US1 entregue e testável de forma independente (MVP).
 
@@ -83,12 +83,12 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 **Independent Test**: abrir devedor com vendas, conferir parcelas/recebimentos, abrir comprovante, "Cobrar" abre o share com a mensagem pronta.
 
-- [ ] T030 [US2] `salesRepo` (leitura) em `mobile/src/data/repositories/sales.ts`: `get`/listagem por devedor já derivada (parcelas com status/overdue, recebimentos, saldo) via core.
-- [ ] T031 [P] [US2] `installmentsRepo` em `mobile/src/data/repositories/installments.ts`: `markLate`, `unmarkLate`, `updateDueDate`.
-- [ ] T032 [US2] `salesRepo.chargeMessage(saleId)` (monta a mensagem como no web, usando chave Pix padrão + telefone) e helper de Share em `mobile/src/lib/share.ts` (`expo-sharing`/`Share` + fallback `expo-clipboard`).
-- [ ] T033 [US2] Tela detalhe do devedor em `mobile/app/devedores/[id].tsx`: cabeçalho + saldo, lista de vendas (SaleCard), parcelas (InstallmentRow com Tags paga/parcial/vencida/+juros), recebimentos e abrir comprovante.
-- [ ] T034 [P] [US2] Componentes `mobile/src/components/sales/sale-card.tsx` e `installment-row.tsx` (incluindo ações marcar/tirar atraso e editar vencimento).
-- [ ] T035 [US2] Botão "Cobrar" no detalhe acionando o Share; estado quando não há telefone (copiar).
+- [x] T030 [US2] `salesRepo` (leitura) em `mobile/src/data/repositories/sales.ts`: `get`/listagem por devedor já derivada (parcelas com status/overdue, recebimentos, saldo) via core.
+- [x] T031 [P] [US2] `installmentsRepo` em `mobile/src/data/repositories/installments.ts`: `markLate`, `unmarkLate`, `updateDueDate`.
+- [x] T032 [US2] `salesRepo.chargeMessage(saleId)` (monta a mensagem como no web, usando chave Pix padrão + telefone) e helper de Share em `mobile/src/lib/share.ts` (`expo-sharing`/`Share` + fallback `expo-clipboard`).
+- [x] T033 [US2] Tela detalhe do devedor em `mobile/app/devedores/[id].tsx`: cabeçalho + saldo, lista de vendas (SaleCard), parcelas (InstallmentRow com Tags paga/parcial/vencida/+juros), recebimentos e abrir comprovante.
+- [x] T034 [P] [US2] Componentes `mobile/src/components/sales/sale-card.tsx` e `installment-row.tsx` (incluindo ações marcar/tirar atraso e editar vencimento).
+- [x] T035 [US2] Botão "Cobrar" no detalhe acionando o Share; estado quando não há telefone (copiar).
 
 **Checkpoint**: US2 entregue; depende da base (Phase 2) e reaproveita leitura de vendas.
 
@@ -100,10 +100,10 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 **Independent Test**: em venda com saldo, registrar recebimento com foto offline; saldo cai; comprovante abre; estornar reverte.
 
-- [ ] T036 [US3] `receiptsRepo` em `mobile/src/data/repositories/receipts.ts`: `create` (valida valor ≤ saldo; 2+ formas exige soma=total; grava evento + attachments via core/allocate), `void` (estorno), `update`, `addAttachment`, `getAttachmentUri`.
-- [ ] T037 [P] [US3] Captura de comprovante em `mobile/src/components/receipts/attachment-picker.tsx` (`expo-image-picker` câmera/galeria + `expo-document-picker` PDF; compressão; salva via `files.ts`; trata permissão negada).
-- [ ] T038 [US3] Form de recebimento em `mobile/src/components/receipts/receipt-sheet.tsx` (RHF+Zod, formas múltiplas, valor por forma com validação de soma, "anexar depois", data).
-- [ ] T039 [US3] Integrar no detalhe do devedor: ação "Registrar recebimento", lista de recebimentos com estorno e badge "sem comprovante".
+- [x] T036 [US3] `receiptsRepo` em `mobile/src/data/repositories/receipts.ts`: `create` (valida valor ≤ saldo; 2+ formas exige soma=total; grava evento + attachments via core/allocate), `void` (estorno), `update`, `addAttachment`, `getAttachmentUri`.
+- [x] T037 [P] [US3] Captura de comprovante em `mobile/src/components/receipts/attachment-picker.tsx` (`expo-image-picker` câmera/galeria + `expo-document-picker` PDF; compressão; salva via `files.ts`; trata permissão negada).
+- [x] T038 [US3] Form de recebimento em `mobile/src/components/receipts/receipt-sheet.tsx` (RHF+Zod, formas múltiplas, valor por forma com validação de soma, "anexar depois", data).
+- [x] T039 [US3] Integrar no detalhe do devedor: ação "Registrar recebimento", lista de recebimentos com estorno e badge "sem comprovante".
 - [ ] T040 [P] [US3] Teste unit do `receiptsRepo` (alocação, validação de soma por forma, estorno) em `mobile/src/data/repositories/__tests__/receipts.spec.ts`.
 
 **Checkpoint**: US3 entregue; com US1+US2 o ciclo de cobrança/pagamento fecha offline.
@@ -116,10 +116,10 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 **Independent Test**: criar venda parcelada vendo a prévia mudar, personalizar uma parcela, salvar; aparece no detalhe com os mesmos números do web.
 
-- [ ] T041 [US4] `salesRepo.create`/`update`/`remove`/`reparcel` em `mobile/src/data/repositories/sales.ts` usando `@pindurados/core` (calculateSale, redistribute) em transação (cria/recria parcelas preservando recebidos).
-- [ ] T042 [US4] Tela Nova venda em `mobile/app/nova-venda.tsx`: seleção de devedor, campos produto/custo/entrada/juros|valor-final/parcelas/datas, prévia ao vivo (debounce, cálculo local).
+- [x] T041 [US4] `salesRepo.create`/`update`/`remove`/`reparcel` em `mobile/src/data/repositories/sales.ts` usando `@pindurados/core` (calculateSale, redistribute) em transação (cria/recria parcelas preservando recebidos).
+- [x] T042 [US4] Tela Nova venda em `mobile/app/nova-venda.tsx`: seleção de devedor, campos produto/custo/entrada/juros|valor-final/parcelas/datas, prévia ao vivo (debounce, cálculo local).
 - [ ] T043 [P] [US4] Editor de parcelas custom em `mobile/src/components/sales/custom-installments.tsx` (fixar/redistribuir via core, somatório vs alvo).
-- [ ] T044 [US4] Guard de "sem devedor" (EmptyState com ação para cadastrar) e edição/reparcelamento de venda no detalhe.
+- [x] T044 [US4] Guard de "sem devedor" (EmptyState com ação para cadastrar) e edição/reparcelamento de venda no detalhe.
 - [ ] T045 [P] [US4] Teste unit do fluxo de criação/reparcelamento do `salesRepo` em `mobile/src/data/repositories/__tests__/sales.spec.ts`.
 
 **Checkpoint**: US4 entregue; venda nasce no app.
@@ -132,10 +132,10 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 **Independent Test**: exportar; em instalação nova, importar e recuperar 100% (dados+comprovantes); importar inválido não corrompe.
 
-- [ ] T046 [US5] `exportBackup()` em `mobile/src/backup/export.ts` (serializa tabelas → data.json, copia comprovantes, monta manifest.json, zipa em cacheDirectory) — conforme `contracts/backup-format.md`.
-- [ ] T047 [US5] `importBackup(uri)` em `mobile/src/backup/import.ts` (abre zip, valida manifest/schemaVersion, confirma, restaura em transação com rollback em falha).
+- [x] T046 [US5] `exportBackup()` em `mobile/src/backup/export.ts` (serializa tabelas → data.json, copia comprovantes, monta manifest.json, zipa em cacheDirectory) — conforme `contracts/backup-format.md`.
+- [x] T047 [US5] `importBackup(uri)` em `mobile/src/backup/import.ts` (abre zip, valida manifest/schemaVersion, confirma, restaura em transação com rollback em falha).
 - [ ] T048 [P] [US5] Escolher e integrar a lib de zip compatível com Expo (managed se possível; senão documentar prebuild) em `mobile/src/backup/zip.ts`.
-- [ ] T049 [US5] Tela Backup em `mobile/app/backup.tsx`: Exportar (Share), Importar (document-picker) com diálogo de confirmação, e exibição de `last_backup_at`.
+- [x] T049 [US5] Tela Backup em `mobile/app/backup.tsx`: Exportar (Share), Importar (document-picker) com diálogo de confirmação, e exibição de `last_backup_at`.
 - [ ] T050 [P] [US5] Lembrete discreto de backup (quando `last_backup_at` antigo) em `mobile/src/components/backup/backup-reminder.tsx`.
 - [ ] T051 [P] [US5] Habilitar Auto Backup do Android em `mobile/app.json` (allowBackup) + nota de limitação no quickstart.
 - [ ] T052 [P] [US5] Teste unit do round-trip export→import em `mobile/src/backup/__tests__/backup.spec.ts` (incluindo arquivo inválido = sem alteração).
@@ -150,8 +150,8 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 **Independent Test**: cadastrar (primeira vira padrão), trocar padrão, remover.
 
-- [ ] T053 [P] [US6] `pixKeysRepo` em `mobile/src/data/repositories/pix-keys.ts` (list/create/setDefault/remove; primeira = padrão).
-- [ ] T054 [US6] Tela Pix em `mobile/app/pix.tsx` (lista + form, marcar padrão, remover) e card de contato (WhatsApp do dono em `settings`).
+- [x] T053 [P] [US6] `pixKeysRepo` em `mobile/src/data/repositories/pix-keys.ts` (list/create/setDefault/remove; primeira = padrão).
+- [x] T054 [US6] Tela Pix em `mobile/app/pix.tsx` (lista + form, marcar padrão, remover) e card de contato (WhatsApp do dono em `settings`).
 
 **Checkpoint**: US6 entregue.
 
@@ -159,11 +159,11 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 ## Phase 9: Polish & Cross-Cutting
 
-- [ ] T055 [P] Garantir estados loading/empty/erro consistentes em todas as telas (FR-024) e tabular-nums nos valores.
+- [x] T055 [P] Garantir estados loading/empty/erro consistentes em todas as telas (FR-024) e tabular-nums nos valores.
 - [ ] T056 [P] Acessibilidade: alvos ≥44px, labels, foco; respeitar tema do sistema.
 - [ ] T057 Configurar `mobile/eas.json` (perfil `preview`) e gerar build interno (APK/TestFlight) para verificação no aparelho.
 - [ ] T058 [P] Verificação manual em aparelho dos fluxos US1–US6 offline (checklist do quickstart) e ajuste de performance (listas/derivação).
-- [ ] T059 [P] Reconfirmar paridade ponta-a-ponta: mesmos parâmetros no web e no app → 0 divergência (SC-003/005); rodar `pnpm -F @pindurados/core test`.
+- [x] T059 [P] Reconfirmar paridade ponta-a-ponta: mesmos parâmetros no web e no app → 0 divergência (SC-003/005); rodar `pnpm -F @pindurados/core test`.
 - [ ] T060 [P] Atualizar `quickstart.md`/README do `mobile/` com decisões finais (lib de zip, prebuild se houver).
 
 ---
