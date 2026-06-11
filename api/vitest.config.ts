@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 export default defineConfig({
   resolve: {
     alias: {
+      '@pindurados/core': resolve(__dirname, '../packages/core/src'),
       '@': resolve(__dirname, 'src'),
     },
   },

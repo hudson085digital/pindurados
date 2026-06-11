@@ -20,8 +20,8 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 **Purpose**: montar o workspace e o esqueleto do app.
 
-- [ ] T001 Criar `pnpm-workspace.yaml` na raiz declarando `packages/*`, `api`, `web`, `mobile`.
-- [ ] T002 Criar `packages/core/package.json` (`@pindurados/core`, type=module, exports `./calc`, `./format`, `./types`, `.`), `tsconfig.json` e `vitest.config.ts`.
+- [x] T001 Criar `pnpm-workspace.yaml` na raiz declarando `packages/*`, `api`, `web`, `mobile`.
+- [x] T002 Criar `packages/core/package.json` (`@pindurados/core`, type=module, exports `./calc`, `./format`, `./types`, `.`), `tsconfig.json` e `vitest.config.ts`.
 - [ ] T003 [P] Scaffold do app em `mobile/` com Expo (managed) + Expo Router (`mobile/package.json`, `mobile/app.json`, `mobile/tsconfig.json`, `mobile/babel.config.js`).
 - [ ] T004 [P] Configurar NativeWind v4 em `mobile/` (`mobile/tailwind.config.js`, `mobile/metro.config.js`, `mobile/global.css`, `nativewind-env.d.ts`).
 - [ ] T005 [P] Adicionar deps do app em `mobile/package.json`: `@tanstack/react-query`, `react-hook-form`, `zod`, `expo-sqlite`, `expo-file-system`, `expo-image-picker`, `expo-document-picker`, `expo-image-manipulator`, `expo-sharing`, `expo-clipboard`, `react-native-toast-message`, `@pindurados/core` (workspace:*).
@@ -35,15 +35,15 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 ### Fase 0 — `@pindurados/core` (fonte única da matemática)
 
-- [ ] T007 [P] Mover a regra de cálculo para `packages/core/src/calc/calculate-sale.ts` a partir de `api/src/use-cases/calculate-sale.ts` (TS puro, sem deps).
-- [ ] T008 [P] Mover/implementar `packages/core/src/calc/allocate-receipts.ts` a partir de `api/src/utils/allocate-receipts.ts`.
-- [ ] T009 [P] Implementar `packages/core/src/calc/redistribute.ts` (extraído da lógica de `web/src/pages/app/new-sale.tsx`) e `add-months.ts` (de `api`/`web`).
-- [ ] T010 [P] Mover formatação para `packages/core/src/format/` (`currency.ts`, `date.ts`, `masks.ts`) a partir de `web/src/lib/{utils,masks}.ts`.
-- [ ] T011 [P] Mover os tipos do domínio para `packages/core/src/types/` a partir de `web/src/api/types.ts` (Sale, Installment, Receipt, ReceiptMethod, PixKey, SaleType, InstallmentStatus, CalculationResult, CalculateBody).
-- [ ] T012 Criar `packages/core/src/index.ts` e os barrels `calc/index.ts`, `format/index.ts`, `types/index.ts` (API do contrato `contracts/core-api.md`).
-- [ ] T013 Mover o **teste de paridade** de juros/parcelas para `packages/core/test/parity.spec.ts` + casos de `allocate`/`redistribute`; `pnpm -F @pindurados/core test` verde.
-- [ ] T014 Migrar `api/` para importar de `@pindurados/core` (calculate-sale, allocate-receipts) e remover as cópias; `pnpm -F pindurados-api test` **sem regressão** (gate).
-- [ ] T015 Migrar `web/` para reexportar de `@pindurados/core` em `web/src/lib/utils.ts`, `web/src/lib/masks.ts`, `web/src/api/types.ts` (mantém imports atuais); `pnpm -F pindurados-web build` **sem regressão** (gate).
+- [x] T007 [P] Mover a regra de cálculo para `packages/core/src/calc/calculate-sale.ts` a partir de `api/src/use-cases/calculate-sale.ts` (TS puro, sem deps).
+- [x] T008 [P] Mover/implementar `packages/core/src/calc/allocate-receipts.ts` a partir de `api/src/utils/allocate-receipts.ts`.
+- [x] T009 [P] Implementar `packages/core/src/calc/redistribute.ts` (extraído da lógica de `web/src/pages/app/new-sale.tsx`) e `add-months.ts` (de `api`/`web`).
+- [x] T010 [P] Mover formatação para `packages/core/src/format/` (`currency.ts`, `date.ts`, `masks.ts`) a partir de `web/src/lib/{utils,masks}.ts`.
+- [x] T011 [P] Mover os tipos do domínio para `packages/core/src/types/` a partir de `web/src/api/types.ts` (Sale, Installment, Receipt, ReceiptMethod, PixKey, SaleType, InstallmentStatus, CalculationResult, CalculateBody).
+- [x] T012 Criar `packages/core/src/index.ts` e os barrels `calc/index.ts`, `format/index.ts`, `types/index.ts` (API do contrato `contracts/core-api.md`).
+- [x] T013 Mover o **teste de paridade** de juros/parcelas para `packages/core/test/parity.spec.ts` + casos de `allocate`/`redistribute`; `pnpm -F @pindurados/core test` verde.
+- [x] T014 Migrar `api/` para importar de `@pindurados/core` (calculate-sale, allocate-receipts) e remover as cópias; `pnpm -F pindurados-api test` **sem regressão** (gate).
+- [x] T015 Migrar `web/` para reexportar de `@pindurados/core` em `web/src/lib/utils.ts`, `web/src/lib/masks.ts`, `web/src/api/types.ts` (mantém imports atuais); `pnpm -F pindurados-web build` **sem regressão** (gate).
 
 ### Base do app mobile
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addMonthsISO } from './add-months'
+import { addMonthsISO } from '../src/calc/dates'
 
 describe('addMonthsISO', () => {
   it('1ª parcela 31/05 gera 30/06, 31/07, 31/08 (dia 31 ajusta em mês curto)', () => {

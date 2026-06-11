@@ -1,0 +1,8 @@
+# Monorepo Pindurados.
+# packages/core (@pindurados/core) é a fonte única da matemática de dinheiro,
+# formatação e tipos, consumida por api/, web/ e (em breve) mobile/.
+# Nesta fase, api/ e web/ consomem o core via alias de tsconfig (sem reinstalar);
+# o app mobile, ao ser criado, entra como membro do workspace.
+packages:
+  - 'packages/*'
+  - 'mobile'

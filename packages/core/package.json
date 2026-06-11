@@ -1,0 +1,25 @@
+{
+  "name": "@pindurados/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Núcleo compartilhado do Pindurados: matemática de dinheiro, formatação e tipos (TS puro, sem deps de plataforma).",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./calc": "./src/calc/index.ts",
+    "./format": "./src/format/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { allocateReceipts, sumReceipts, AllocatableInstallment } from './allocate-receipts'
+import {
+  allocateReceipts,
+  sumReceipts,
+  type AllocatableInstallment,
+} from '../src/calc/allocate-receipts'
 
 // Crediário do exemplo da spec: 1000 em 3x (333,33 / 333,33 / 333,34), sem atraso.
 const PARCELAS: AllocatableInstallment[] = [
@@ -47,7 +51,6 @@ describe('allocateReceipts — cascata da mais antiga para a mais nova', () => {
 })
 
 describe('allocateReceipts — multa+juros antes do principal (Q1)', () => {
-  // 1ª parcela em atraso: principal 33333 + multa/juros 10000 = efetivo 43333.
   const COM_ATRASO: AllocatableInstallment[] = [
     { amountInCents: 33333, isLate: true, lateInterestInCents: 10000 },
     { amountInCents: 33333, isLate: false, lateInterestInCents: 0 },
@@ -80,7 +83,6 @@ describe('allocateReceipts — estornos', () => {
 
     const r = allocateReceipts(PARCELAS, total)
     expect(r.balanceInCents).toBe(70000)
-    // 30000 cobre parte da 1ª (33333): parcial
     expect(r.installments[0].status).toBe('PARTIAL')
     expect(r.installments[0].paidInCents).toBe(30000)
     expect(r.installments[1].status).toBe('OPEN')

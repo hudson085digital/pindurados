@@ -17,7 +17,9 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@pindurados/core": ["../packages/core/src/index.ts"],
+      "@pindurados/core/*": ["../packages/core/src/*"]
     }
   },
   "include": ["src"],

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateSale } from './calculate-sale'
+import { calculateSale } from '../src/calc/calculate-sale'
 
 describe('Calculadora de venda (juros)', () => {
   it('MANUAL: escolhe livremente parcelas e juros', () => {
@@ -23,7 +23,6 @@ describe('Calculadora de venda (juros)', () => {
       interestPercent: 0,
       installmentsCount: 3,
     })
-    // 10000 / 3 = 3333,33... => 3333, 3333, 3334
     expect(r.installmentValuesInCents).toEqual([3333, 3333, 3334])
     expect(r.installmentValuesInCents.reduce((a, b) => a + b, 0)).toBe(10000)
   })
@@ -39,8 +38,22 @@ describe('Calculadora de venda (juros)', () => {
     expect(r.totalInCents).toBe(250000)
     expect(r.installmentsCount).toBe(3)
     expect(r.interestPercent).toBeCloseTo(31.58, 1)
-    // 250000 / 3 = 83333,33 => 83333, 83333, 83334
     expect(r.installmentValuesInCents).toEqual([83333, 83333, 83334])
+  })
+
+  it('BY_TOTAL: valor final inclui a entrada (produto 1900, entrada 500, final 2500 em 3x)', () => {
+    const r = calculateSale({
+      type: 'BY_TOTAL',
+      productValueInCents: 190000,
+      downPaymentInCents: 50000,
+      targetTotalInCents: 250000,
+      installmentsCount: 3,
+    })
+    expect(r.totalInCents).toBe(200000)
+    expect(r.remainingInCents).toBe(140000)
+    expect(r.interestPercent).toBeCloseTo(42.86, 1)
+    expect(r.downPaymentInCents + r.totalInCents).toBe(250000)
+    expect(r.installmentValuesInCents).toEqual([66666, 66666, 66668])
   })
 
   it('custom: total 2500 dividido em 2x 1000 + 1x 500', () => {
@@ -54,7 +67,6 @@ describe('Calculadora de venda (juros)', () => {
     expect(r.totalInCents).toBe(250000)
     expect(r.installmentsCount).toBe(3)
     expect(r.installmentValuesInCents).toEqual([100000, 100000, 50000])
-    // juros = (250000-200000)/200000 = 25%
     expect(r.interestPercent).toBe(25)
   })
 })
