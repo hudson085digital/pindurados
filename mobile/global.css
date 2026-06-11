@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens do tema "fintech limpa" — espelham web/src/index.css (claro/escuro).
+   No RN, o NativeWind aplica o bloco de prefers-color-scheme conforme o tema do
+   sistema. */
+@layer base {
+  :root {
+    --background: 168 22% 98%;
+    --foreground: 200 24% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 24% 14%;
+    --primary: 162 72% 30%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 168 28% 95%;
+    --secondary-foreground: 200 20% 22%;
+    --muted: 168 24% 96%;
+    --muted-foreground: 205 14% 40%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 168 16% 90%;
+    --input: 168 16% 88%;
+    --ring: 162 72% 34%;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 200 28% 8%;
+      --foreground: 168 18% 92%;
+      --card: 200 24% 11%;
+      --card-foreground: 168 18% 92%;
+      --primary: 160 58% 42%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 200 18% 18%;
+      --secondary-foreground: 168 16% 88%;
+      --muted: 200 18% 16%;
+      --muted-foreground: 195 13% 64%;
+      --destructive: 0 66% 52%;
+      --destructive-foreground: 0 0% 100%;
+      --border: 200 16% 20%;
+      --input: 200 16% 22%;
+      --ring: 160 58% 52%;
+    }
+  }
+}

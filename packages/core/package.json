@@ -11,7 +11,8 @@
     ".": "./src/index.ts",
     "./calc": "./src/calc/index.ts",
     "./format": "./src/format/index.ts",
-    "./types": "./src/types/index.ts"
+    "./types": "./src/types/index.ts",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "test": "vitest run",

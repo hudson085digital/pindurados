@@ -22,10 +22,10 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 - [x] T001 Criar `pnpm-workspace.yaml` na raiz declarando `packages/*`, `api`, `web`, `mobile`.
 - [x] T002 Criar `packages/core/package.json` (`@pindurados/core`, type=module, exports `./calc`, `./format`, `./types`, `.`), `tsconfig.json` e `vitest.config.ts`.
-- [ ] T003 [P] Scaffold do app em `mobile/` com Expo (managed) + Expo Router (`mobile/package.json`, `mobile/app.json`, `mobile/tsconfig.json`, `mobile/babel.config.js`).
-- [ ] T004 [P] Configurar NativeWind v4 em `mobile/` (`mobile/tailwind.config.js`, `mobile/metro.config.js`, `mobile/global.css`, `nativewind-env.d.ts`).
-- [ ] T005 [P] Adicionar deps do app em `mobile/package.json`: `@tanstack/react-query`, `react-hook-form`, `zod`, `expo-sqlite`, `expo-file-system`, `expo-image-picker`, `expo-document-picker`, `expo-image-manipulator`, `expo-sharing`, `expo-clipboard`, `react-native-toast-message`, `@pindurados/core` (workspace:*).
-- [ ] T006 `pnpm install` na raiz e confirmar que o workspace resolve `@pindurados/core` em `api/`, `web/` e `mobile/`.
+- [x] T003 [P] Scaffold do app em `mobile/` com Expo (managed) + Expo Router (`mobile/package.json`, `mobile/app.json`, `mobile/tsconfig.json`, `mobile/babel.config.js`).
+- [x] T004 [P] Configurar NativeWind v4 em `mobile/` (`mobile/tailwind.config.js`, `mobile/metro.config.js`, `mobile/global.css`, `nativewind-env.d.ts`).
+- [x] T005 [P] Adicionar deps do app em `mobile/package.json`: `@tanstack/react-query`, `react-hook-form`, `zod`, `expo-sqlite`, `expo-file-system`, `expo-image-picker`, `expo-document-picker`, `expo-image-manipulator`, `expo-sharing`, `expo-clipboard`, `react-native-toast-message`, `@pindurados/core` (workspace:*).
+- [x] T006 `pnpm install` na raiz e confirmar que o workspace resolve `@pindurados/core` em `api/`, `web/` e `mobile/`.
 
 ---
 
@@ -47,11 +47,11 @@ Monorepo pnpm: `packages/core/` (compartilhado), `api/`, `web/` (existentes), `m
 
 ### Base do app mobile
 
-- [ ] T016 [P] Implementar o tema em `mobile/src/theme/tokens.ts` + preset em `mobile/tailwind.config.js` portando os tokens HSL claro/escuro de `web/src/index.css`; `useColorScheme`.
-- [ ] T017 [P] Inicializar o banco em `mobile/src/data/db.ts` (abre `expo-sqlite`, roda migrations) e criar `mobile/src/data/migrations/0001_init.ts` com o schema de `data-model.md` (tabelas + `meta.schema_version`).
+- [x] T016 [P] Implementar o tema em `mobile/src/theme/tokens.ts` + preset em `mobile/tailwind.config.js` portando os tokens HSL claro/escuro de `web/src/index.css`; `useColorScheme`.
+- [x] T017 [P] Inicializar o banco em `mobile/src/data/db.ts` (abre `expo-sqlite`, roda migrations) e criar `mobile/src/data/migrations/0001_init.ts` com o schema de `data-model.md` (tabelas + `meta.schema_version`).
 - [ ] T018 [P] Helper de arquivos em `mobile/src/data/files.ts` (garante `documentDirectory/comprovantes/`, salvar/ler/remover, compressão via `expo-image-manipulator`).
 - [ ] T019 [P] Wrappers de derivação em `mobile/src/data/derive.ts` usando `@pindurados/core/calc` (status/saldo de parcela e venda) + `mobile/src/lib/format.ts` reexportando `@pindurados/core/format`.
-- [ ] T020 Provedores em `mobile/app/_layout.tsx`: QueryClientProvider, ThemeProvider, `Toast`, e o Tab navigator (Resumo/Devedores/Nova venda/Pix/Backup) com a navbar nativa.
+- [x] T020 Provedores em `mobile/app/_layout.tsx`: QueryClientProvider, ThemeProvider, `Toast`, e o Tab navigator (Resumo/Devedores/Nova venda/Pix/Backup) com a navbar nativa.
 - [ ] T021 [P] Primitivos de UI nativos em `mobile/src/components/ui/`: `button.tsx`, `card.tsx`, `input.tsx`, `skeleton.tsx`, `empty-state.tsx`, `tag.tsx`, `logo.tsx` (espelham os do web, em `View/Text/Pressable`).
 
 **Checkpoint**: core publicado no workspace e com paridade verde; api/web sem regressão; app abre com tabs, tema e banco inicializado.
