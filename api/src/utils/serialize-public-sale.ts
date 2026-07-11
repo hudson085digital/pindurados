@@ -30,6 +30,8 @@ export interface PublicSaleView {
     attachments: { path: string; method: string | null }[]
     receiptPath: string | null
   }[]
+  // 025 — itens vendidos: só nome e garantia (NUNCA custo/lucro/dados de compra)
+  items?: { name: string; warrantyUntil: Date | null }[]
   pix?: { type: PixKeyType; key: string; holderName: string; bankName: string }
   contact?: { phone: string; whatsappUrl: string }
 }
@@ -81,6 +83,14 @@ export function serializePublicSale(
       })),
       receiptPath: r.receiptPath,
     })),
+  }
+
+  // 025 — itens da venda (quando houver), com a garantia visível ao comprador.
+  if (sale.items.length > 0) {
+    view.items = sale.items.map((item) => ({
+      name: item.nameSnapshot,
+      warrantyUntil: item.warrantyUntil,
+    }))
   }
 
   // PIX padrão do dono (US3) — omitido quando ausente.

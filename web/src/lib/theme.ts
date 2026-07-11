@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react'
+
 // Tema claro/escuro. A preferência mora em localStorage; sem preferência salva,
 // segue o sistema (prefers-color-scheme). O index.html já aplica a classe antes
 // da pintura para evitar flash — aqui só sincronizamos e expomos o toggle.
@@ -30,4 +32,20 @@ export function toggleTheme(): Theme {
   const next: Theme = resolveTheme() === 'dark' ? 'light' : 'dark'
   setTheme(next)
   return next
+}
+
+// Tema resolvido e reativo: observa a classe `dark` no <html>, então qualquer
+// caminho que troque o tema (toggle, sistema) reflete em quem consome o hook.
+export function useResolvedTheme(): Theme {
+  return useSyncExternalStore(
+    (onChange) => {
+      const observer = new MutationObserver(onChange)
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
+      return () => observer.disconnect()
+    },
+    () => (document.documentElement.classList.contains('dark') ? 'dark' : 'light'),
+  )
 }

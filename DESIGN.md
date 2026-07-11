@@ -1,103 +1,86 @@
 # Design
 
-Visual system for Pindurados. Register: **product** (clean fintech). Restrained
-color strategy — one emerald accent over tinted neutrals, light + dark themes.
-Tokens are HSL channels consumed by Tailwind as `hsl(var(--token))`.
+Visual system do **MOB PHONE** aplicado ao app. Register: **product**. Fonte de
+verdade da identidade: `design/mobphone_design_system_v3.html` (+ logo em
+`design/mobphone_logo_monogram.svg`). Tokens são canais HSL consumidos pelo
+Tailwind como `hsl(var(--token))` em `web/src/index.css`.
 
-## Theme
+## Marca
 
-Light is the default (daytime use at a counter). Dark is fully supported and
-toggled by the user; it persists in `localStorage` (`pindurados.theme`) and falls
-back to `prefers-color-scheme`. The `.dark` class on `<html>` switches token sets.
+- Wordmark: **mob** (Poppins 700) + **phone** (Poppins 400, primary). Monograma
+  "m" branco sobre tile com o gradiente da marca (componente `Logo`, variante
+  `onBrand` para superfícies com gradiente).
+- **Gradiente assinatura** `linear-gradient(135deg, #F97316, #EF4444)` — classe
+  utilitária `.bg-brand-gradient`. Reservado a: topo do app, botão primário,
+  card de destaque do dashboard, barras de progresso de marca. Nunca em texto,
+  nunca em blocos grandes de leitura.
 
-## Color
+## Cores
 
-Single accent: a refined **emerald** (`--primary`), used only for primary actions,
-current selection, positive/settled state, and focus. **Red** (`--destructive`)
-means debt / overdue / destructive only. Everything else is a tinted neutral ramp
-(a hair of emerald hue in the grays — never warm/cream). No second accent, no
-gradients, no decorative color.
+Primária **orange** (ação/marca), acento red só dentro do gradiente, neutros
+**slate**. Semânticos independentes da marca: **success green** = pago/em dia,
+**danger rose** (#E11D48) = dívida/atraso/destrutivo — rose (e não vermelho puro)
+para não colidir com a marca quente.
 
 ### Light
-| Token | HSL |
-|---|---|
-| `--background` | `168 22% 98%` |
-| `--foreground` | `200 24% 14%` |
-| `--card` | `0 0% 100%` |
-| `--card-foreground` | `200 24% 14%` |
-| `--primary` | `162 72% 30%` |
-| `--primary-foreground` | `0 0% 100%` |
-| `--secondary` | `168 28% 95%` |
-| `--secondary-foreground` | `200 20% 22%` |
-| `--muted` | `168 24% 96%` |
-| `--muted-foreground` | `205 14% 40%` |
-| `--destructive` | `0 72% 48%` |
-| `--destructive-foreground` | `0 0% 100%` |
-| `--border` | `168 16% 90%` |
-| `--input` | `168 16% 88%` |
-| `--ring` | `162 72% 34%` |
-| `--radius` | `0.75rem` |
+| Token | HSL | Ref |
+|---|---|---|
+| `--background` | `210 40% 98%` | slate-50 |
+| `--foreground` | `217 33% 17%` | slate-800 |
+| `--card` | `0 0% 100%` | white |
+| `--primary` | `21 90% 48%` | orange-600 |
+| `--secondary` / `--muted` | `210 40% 96%` | slate-100 |
+| `--muted-foreground` | `215 16% 47%` | slate-500 |
+| `--destructive` | `347 77% 50%` | rose #E11D48 |
+| `--success` | `142 76% 36%` | green #16A34A |
+| `--border` | `214 32% 91%` | slate-200 |
+| `--input` | `213 27% 84%` | slate-300 |
+| `--ring` | `25 95% 53%` | orange-500 |
+| `--radius` | `1rem` | lg 16 · md 10 · sm 6 |
 
 ### Dark
-| Token | HSL |
-|---|---|
-| `--background` | `200 28% 8%` |
-| `--foreground` | `168 18% 92%` |
-| `--card` | `200 24% 11%` |
-| `--card-foreground` | `168 18% 92%` |
-| `--primary` | `160 58% 42%` |
-| `--primary-foreground` | `0 0% 100%` |
-| `--secondary` | `200 18% 18%` |
-| `--secondary-foreground` | `168 16% 88%` |
-| `--muted` | `200 18% 16%` |
-| `--muted-foreground` | `195 13% 64%` |
-| `--destructive` | `0 66% 52%` |
-| `--destructive-foreground` | `0 0% 100%` |
-| `--border` | `200 16% 20%` |
-| `--input` | `200 16% 22%` |
-| `--ring` | `160 58% 52%` |
+Derivado da escala slate (o DS não define dark; adaptação documentada aqui):
+bg slate-900, card slate-800, primary orange-400 (`27 96% 61%`), success/danger
+clareados, borders slate-700. O gradiente da marca é o mesmo nos dois temas.
 
-## Typography
+## Tipografia
 
-One family: **Inter** (with `system-ui` fallback). Product UIs don't need
-display/body pairing. Fixed rem scale (not fluid), tight ratio (~1.2). Numbers use
-`font-variant-numeric: tabular-nums` (the `.tnum` utility / Tailwind `tabular-nums`)
-so currency and dates align in columns — the ledger reflex.
+- **Poppins** (display): h1–h3, wordmark, títulos de página/dialog e valores de
+  destaque (stat cards). `font-display` no Tailwind.
+- **Inter** (body): corpo, formulários, listas. `text-base` em inputs (iOS zoom).
+- **JetBrains Mono** (dados): overlines/section labels (`font-mono text-xs
+  uppercase tracking-[0.14em]`) e chaves/URLs. Adaptação: overlines em
+  `muted-foreground` (o DS usa accent-600, mas vermelho em rótulos colidiria com
+  a semântica de atraso num app de dinheiro).
+- Valores monetários: Inter com `tabular-nums` para alinhamento em coluna.
 
-- Brand wordmark: Inter semibold, paired with an emerald `ReceiptText` logomark in
-  a rounded tile. No emoji in the wordmark.
-- Headings: `text-lg`/`text-xl` semibold. Section labels: `text-xs` uppercase
-  tracked muted (used sparingly, as a product label — not a marketing eyebrow).
-- Body: `text-sm`; `text-base` on inputs to avoid iOS zoom.
+## Forma & Elevação
 
-## Shape & Elevation
+Raio do DS: sm 6 / md 10 / lg 16 / full. Sombras slate (`sh-sm/md/lg`) já
+mapeadas em `boxShadow` do Tailwind. Cards brancos sobre slate-50, `shadow-sm`.
 
-- Radius: `--radius` (0.75rem) for cards/dialogs/buttons; `-2px`/`-4px` steps.
-- Shadows are subtle and token-driven (`shadow-sm` resting, `shadow-md` on
-  dialogs/overlays). No heavy drop shadows, no glow.
+## Componentes
 
-## Components
+shadcn-style em `web/src/components/ui`. Estados completos em tudo (default,
+hover, focus-visible ring 2px, active scale, disabled, loading via prop
+`loading` do Button com spinner).
 
-shadcn-style primitives in `src/components/ui`. Every interactive element ships
-all states: default, hover, **focus-visible (2px ring + offset)**, active
-(subtle `scale-[0.98]`), disabled, loading. Same button/control/icon vocabulary
-across every screen — `lucide-react` icons only, consistent sizing.
-
-- Loading → skeleton blocks (`Skeleton`), not centered spinners/"Carregando…".
-- Empty → a muted lucide icon in a soft circle + one teaching sentence + the next
-  action. Never a bare emoji or blank space.
-- Tags/chips: `bg-secondary` (neutral), `bg-primary/10 text-primary` (positive),
-  `bg-destructive/10 text-destructive` (overdue) — color always paired with text.
+- Button default = gradiente da marca + `hover:brightness-[1.07]`; secondary =
+  tinta orange (primary/10 + borda primary/20); destructive = rose sólido.
+- `Select` nativo estilizado, `Switch` (role=switch), `ConfirmDialog`
+  (useConfirm — substitui window.confirm), `PasswordInput`, `PageHeader`.
+- Loading → `Skeleton`; vazio → `EmptyState` (ícone + frase + ação).
+- Tags/chips: neutro `bg-secondary`; positivo `bg-success/10 text-success`;
+  atraso `bg-destructive/10 text-destructive`; marca `bg-primary/10 text-primary`
+  — cor sempre acompanhada de texto.
 
 ## Layout
 
-Mobile-first, `container` capped at 768px. Sticky translucent header (logomark +
-theme toggle + sair). Fixed bottom nav with active pill + `env(safe-area-inset)`
-padding; touch targets ≥44px. Responsive behavior is structural, not fluid type.
+Mobile-first, `container` 768px. **Topo com o gradiente da marca** (logo onBrand
++ ações em branco/15). Bottom nav em superfície card, item ativo em pill
+`bg-primary/10 text-primary`, alvos ≥44px, `env(safe-area-inset)`.
 
 ## Motion
 
-150–250ms, `ease-out`. Motion conveys state (hover, press, dialog enter, toast),
-never decoration — no page-load choreography. Every transition has a
-`prefers-reduced-motion: reduce` path (crossfade/instant). Don't animate layout
-properties.
+150–250ms `ease-out`; motion só para estado (hover, press, dialog, toast, barras
+de progresso). `prefers-reduced-motion` respeitado globalmente.

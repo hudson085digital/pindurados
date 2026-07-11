@@ -6,7 +6,7 @@ export default {
     container: {
       center: true,
       padding: '1rem',
-      screens: { '2xl': '768px' },
+      screens: { '2xl': '1152px' },
     },
     extend: {
       fontFamily: {
@@ -18,11 +18,13 @@ export default {
           'Roboto',
           'sans-serif',
         ],
+        display: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {
-        sm: '0 1px 2px 0 hsl(200 24% 14% / 0.04), 0 1px 3px 0 hsl(200 24% 14% / 0.06)',
-        md: '0 4px 12px -2px hsl(200 24% 14% / 0.10), 0 2px 6px -2px hsl(200 24% 14% / 0.08)',
-        lg: '0 12px 32px -8px hsl(200 24% 14% / 0.18), 0 4px 12px -4px hsl(200 24% 14% / 0.10)',
+        sm: '0 1px 2px 0 hsl(222 47% 11% / 0.06), 0 1px 3px 0 hsl(222 47% 11% / 0.10)',
+        md: '0 4px 12px 0 hsl(222 47% 11% / 0.08)',
+        lg: '0 12px 32px 0 hsl(222 47% 11% / 0.14)',
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -42,6 +44,10 @@ export default {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+        },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
@@ -52,9 +58,10 @@ export default {
         },
       },
       borderRadius: {
+        // Escala do DS: lg 16px · md 10px · sm 6px
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        md: 'calc(var(--radius) - 6px)',
+        sm: 'calc(var(--radius) - 10px)',
       },
     },
   },

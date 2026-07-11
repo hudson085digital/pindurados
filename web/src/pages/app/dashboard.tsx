@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/ui/page-header'
 
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 function monthLabel(ym: string): string {
@@ -13,12 +14,10 @@ function monthLabel(ym: string): string {
   return `${MONTHS[Number(m) - 1]}/${y.slice(2)}`
 }
 
+import { RECEIPT_METHOD_LABELS } from '@pindurados/core'
+
 const METHOD_LABEL: Record<string, string> = {
-  PIX: 'Pix',
-  CARD: 'Cartão',
-  CREDIT: 'Crédito',
-  DEBIT: 'Débito',
-  CASH: 'Dinheiro',
+  ...RECEIPT_METHOD_LABELS,
   NONE: 'Sem forma',
 }
 
@@ -39,6 +38,8 @@ export function Dashboard() {
 
   return (
     <div className="space-y-4">
+      <PageHeader title="Resumo" />
+
       {t.receiptsPendingProof > 0 && (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardContent className="flex items-start gap-2.5 p-3 text-sm text-destructive">
@@ -50,20 +51,97 @@ export function Dashboard() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((s) => (
-          <Card key={s.label} className={s.highlight ? 'border-transparent bg-primary text-primary-foreground shadow-md' : ''}>
+          <Card key={s.label} className={s.highlight ? 'border-transparent bg-brand-gradient text-white shadow-md' : ''}>
             <CardContent className="p-4">
-              <p className={s.highlight ? 'text-sm text-primary-foreground/80' : 'text-sm text-muted-foreground'}>
+              <p className={s.highlight ? 'text-sm text-white/85' : 'text-sm text-muted-foreground'}>
                 {s.label}
               </p>
-              <p className={cn('mt-1 text-2xl font-bold tabular-nums', s.alert && 'text-destructive')}>
+              <p className={cn('mt-1 font-display text-2xl font-bold tabular-nums', s.alert && 'text-destructive')}>
                 {s.value}
               </p>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {data.loja && (
+        <>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">Investido no mês</p>
+                <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+                  {formatCurrency(data.loja.investedInCents)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">Aguardando chegada</p>
+                <p className={cn('mt-1 font-display text-2xl font-bold tabular-nums', data.loja.pending.pendingProductsCount > 0 && 'text-destructive')}>
+                  {data.loja.pending.pendingProductsCount}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatCurrency(data.loja.pending.pendingProductsValueInCents)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">Créditos pendentes</p>
+                <p className={cn('mt-1 font-display text-2xl font-bold tabular-nums', data.loja.pending.pendingCreditsCount > 0 && 'text-destructive')}>
+                  {formatCurrency(data.loja.pending.pendingCreditsValueInCents)}
+                </p>
+                <p className="text-xs text-muted-foreground">milhas / cashback</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">A receber (casada)</p>
+                <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+                  {formatCurrency(data.loja.pending.pendingPaymentsValueInCents)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatCurrency(data.loja.pending.overduePaymentsValueInCents)} vencido
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {(data.loja.pending.pendingProductsCount > 0 ||
+            data.loja.pending.pendingCreditsCount > 0) && (
+            <Button asChild variant="secondary" className="w-full">
+              <Link to="/loja/compras?aba=pendencias">
+                Ver pendências da loja <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+
+          {data.loja.monthlyProfit.length > 0 && (
+            <Section title="Lucro e margem por mês">
+              <div className="divide-y divide-border">
+                {data.loja.monthlyProfit.map((m) => (
+                  <div key={m.month} className="flex items-center justify-between py-2 text-sm first:pt-0 last:pb-0">
+                    <span className="text-muted-foreground">{monthLabel(m.month)}</span>
+                    <span className="text-right">
+                      <span className="font-semibold tabular-nums text-success">
+                        {formatCurrency(m.profitInCents)}
+                      </span>
+                      {m.marginPercent != null && (
+                        <span className="ml-2 text-xs text-muted-foreground tabular-nums">
+                          {m.marginPercent.toLocaleString('pt-BR')}% margem
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+        </>
+      )}
 
       <Section title="Recebido por mês">
         {data.receivedByMonth.length === 0 ? (
@@ -91,7 +169,7 @@ export function Dashboard() {
         )}
       </Section>
 
-      <Section title="Top devedores">
+      <Section title="Top clientes">
         {data.topDebtors.length === 0 ? (
           <Empty>Ninguém devendo no momento.</Empty>
         ) : (
@@ -99,7 +177,7 @@ export function Dashboard() {
             items={data.topDebtors.map((d) => ({
               label: d.name,
               value: d.balanceInCents,
-              href: `/devedores/${d.customerId}`,
+              href: `/clientes/${d.customerId}`,
             }))}
             tone="destructive"
           />
@@ -133,16 +211,16 @@ export function Dashboard() {
         )}
       </Section>
 
-      <Card>
-        <CardContent className="divide-y divide-border p-4">
+      <Section title="Números gerais">
+        <div className="divide-y divide-border">
           <Row label="Vendas registradas" value={t.salesCount} />
           <Row label="Vendas quitadas" value={t.settledSalesCount} />
-          <Row label="Devedores em aberto" value={t.customersWithDebt} />
+          <Row label="Clientes em aberto" value={t.customersWithDebt} />
           <Row label="Parcelas em atraso (juros)" value={t.lateInstallments} />
           <Row label="Total vendido" value={formatCurrency(t.soldInCents)} />
           <Row label="Custo total" value={formatCurrency(t.costInCents)} />
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
       <Button asChild className="w-full">
         <Link to="/nova-venda">
@@ -156,7 +234,8 @@ export function Dashboard() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <PageHeader title="Resumo" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i}>
             <CardContent className="space-y-2 p-4">
@@ -184,7 +263,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="mb-3 font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {title}
         </p>
         {children}
@@ -205,7 +284,7 @@ function Bars({
   tone?: 'primary' | 'destructive'
 }) {
   const max = Math.max(1, ...items.map((i) => Math.abs(i.value)))
-  const barColor = tone === 'destructive' ? 'bg-destructive/70' : 'bg-primary'
+  const barColor = tone === 'destructive' ? 'bg-destructive/70' : 'bg-brand-gradient'
 
   return (
     <div className="space-y-2.5">

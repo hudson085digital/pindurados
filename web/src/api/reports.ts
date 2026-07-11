@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios'
+import { LojaDashboard } from './types'
 
 export interface Summary {
   totalSoldInCents: number
@@ -41,6 +42,8 @@ export interface Dashboard {
     balanceInCents: number
     overdue: boolean
   }[]
+  // 025 — bloco da loja (aditivo)
+  loja?: LojaDashboard
 }
 
 export async function getDashboard() {

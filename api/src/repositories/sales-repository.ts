@@ -7,6 +7,8 @@ export type SaleWithDetails = Prisma.SaleGetPayload<{
     customer: true
     installments: true
     receipts: { include: { attachments: true } }
+    items: true
+    attachments: true
   }
 }>
 

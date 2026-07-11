@@ -34,6 +34,14 @@ export interface CreateSaleBody extends CalculateBody {
   lateFeePercent?: number
   saleDate?: string
   firstDueDate?: string
+  // 025 — loja de eletrônicos (tudo opcional)
+  items?: { unitId: string; priceInCents: number; discountInCents?: number; allowAwaiting?: boolean }[]
+  origin?: string
+  deliveryType?: string
+  saleKind?: string
+  customerKind?: string
+  immediateMethods?: string[]
+  immediateMethodAmounts?: number[]
 }
 
 export async function createSale(body: CreateSaleBody) {
@@ -61,4 +69,34 @@ export async function updateSale(id: string, body: UpdateSaleBody) {
 
 export async function deleteSale(id: string) {
   await api.delete(`/sales/${id}`)
+}
+
+// Fotos da venda (etiqueta, nº de série, comprovante de entrega…).
+export async function addSaleAttachments(
+  saleId: string,
+  kind: string,
+  files: File[],
+) {
+  const form = new FormData()
+  form.append('kind', kind)
+  for (const file of files) form.append('foto', file)
+  await api.post(`/sales/${saleId}/attachments`, form)
+}
+
+export async function deleteSaleAttachment(saleId: string, attachmentId: string) {
+  await api.delete(`/sales/${saleId}/attachments/${attachmentId}`)
+}
+
+// Vincula um produto do estoque a uma venda já criada (resolve o alerta de
+// "venda sem produto registrado"). Não altera total/parcelas.
+export async function addSaleItem(
+  saleId: string,
+  unitId: string,
+  priceInCents?: number,
+) {
+  const response = await api.post<{ sale: Sale }>(`/sales/${saleId}/items`, {
+    unitId,
+    priceInCents,
+  })
+  return response.data.sale
 }

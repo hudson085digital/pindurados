@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { signIn } from '@/api/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Logo } from '@/components/ui/logo'
@@ -66,13 +67,13 @@ export function SignIn() {
           </div>
           <div>
             <Label htmlFor="password">Senha</Label>
-            <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
+            <PasswordInput id="password" autoComplete="current-password" {...register('password')} />
             {errors.password && (
               <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
             )}
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Entrando…' : 'Entrar'}
+          <Button type="submit" className="w-full" loading={isSubmitting}>
+            Entrar
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Não tem conta?{' '}

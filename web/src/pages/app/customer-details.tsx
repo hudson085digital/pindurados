@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ChevronLeft, Undo2, Send, Bell, Pencil, Link2, Copy, Trash2, Receipt as ReceiptIcon } from 'lucide-react'
+import { ChevronLeft, Undo2, Send, Bell, Pencil, Link2, Copy, Trash2, Receipt as ReceiptIcon, Check, AlertTriangle, Plus, Camera } from 'lucide-react'
 import { getCustomerDetails, deleteCustomer, updateCustomer } from '@/api/customers'
-import { deleteSale, getChargeMessage, updateSale } from '@/api/sales'
+import { addSaleAttachments, addSaleItem, deleteSale, deleteSaleAttachment, getChargeMessage, updateSale } from '@/api/sales'
 import {
   createShareLink,
   getShareLink,
@@ -18,7 +18,9 @@ import {
   updateInstallmentDueDate,
 } from '@/api/installments'
 import { Installment, Receipt, ReceiptMethod, Sale } from '@/api/types'
+import { ALL_RECEIPT_METHODS, RECEIPT_METHOD_LABELS } from '@pindurados/core'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { fetchStockUnits } from '@/api/stock'
 import { queryClient } from '@/lib/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,10 +36,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Select } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DatePicker } from '@/components/ui/date-picker'
 
 export function CustomerDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const confirm = useConfirm()
 
   const { data, isLoading } = useQuery({
     queryKey: ['customer', id],
@@ -58,9 +65,15 @@ export function CustomerDetails() {
   })
 
   async function handleDeleteCustomer() {
-    if (!confirm('Excluir este devedor e TODAS as vendas dele?')) return
+    const ok = await confirm({
+      title: 'Excluir cliente?',
+      description: 'Todas as vendas dele também serão excluídas. Essa ação não tem volta.',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    })
+    if (!ok) return
     await removeCustomer(id!)
-    navigate('/devedores')
+    navigate('/clientes')
   }
 
   async function handleToggleReminder(next: boolean) {
@@ -97,58 +110,71 @@ export function CustomerDetails() {
 
   return (
     <div className="space-y-3">
-      <Link to="/devedores" className="flex items-center text-sm font-medium text-primary">
-        <ChevronLeft className="h-4 w-4" /> Voltar
+      <Link
+        to="/clientes"
+        className="-ml-2 inline-flex h-9 items-center gap-1 rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <ChevronLeft className="h-4 w-4" /> Clientes
       </Link>
 
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-semibold">{customer.name}</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-lg font-semibold">{customer.name}</p>
               <p className="text-sm text-muted-foreground">
                 {customer.phone || 'sem contato'}
               </p>
             </div>
-            <span
-              className={cn(
-                'text-lg font-bold tabular-nums',
-                balanceInCents > 0 ? 'text-destructive' : 'text-primary',
-              )}
-            >
-              {formatCurrency(balanceInCents)}
-            </span>
+            <div className="shrink-0 text-right">
+              <span
+                className={cn(
+                  'text-lg font-bold tabular-nums',
+                  balanceInCents > 0 ? 'text-destructive' : 'text-success',
+                )}
+              >
+                {formatCurrency(balanceInCents)}
+              </span>
+              <p className="text-[11px] text-muted-foreground">
+                {balanceInCents > 0 ? 'saldo devedor' : 'em dia'}
+              </p>
+            </div>
           </div>
           {customer.note && (
             <p className="mt-2 text-sm text-muted-foreground">{customer.note}</p>
           )}
-          <button
-            onClick={() => handleToggleReminder(!customer.autoReminder)}
-            className={cn(
-              'mt-3 flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm',
-              customer.autoReminder
-                ? 'border-primary/40 bg-primary/5 text-primary'
-                : 'text-muted-foreground',
-            )}
-          >
-            <span className="flex items-center gap-2">
-              <Bell className="h-4 w-4" /> Lembrete automático de cobrança
-            </span>
-            <span className="font-semibold">{customer.autoReminder ? 'ON' : 'OFF'}</span>
-          </button>
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-md border px-3 py-2.5">
+            <label
+              htmlFor="auto-reminder"
+              className={cn(
+                'flex items-center gap-2 text-sm',
+                customer.autoReminder ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              <Bell className={cn('h-4 w-4', customer.autoReminder && 'text-primary')} />
+              Lembrete automático de cobrança
+            </label>
+            <Switch
+              id="auto-reminder"
+              checked={customer.autoReminder}
+              onCheckedChange={handleToggleReminder}
+            />
+          </div>
         </CardContent>
       </Card>
 
       <div className="flex gap-2">
         <Button asChild size="sm" className="flex-1">
-          <Link to={`/nova-venda?customerId=${customer.id}`}>+ Nova venda</Link>
+          <Link to={`/nova-venda?customerId=${customer.id}`}>
+            <Plus className="h-4 w-4" /> Nova venda
+          </Link>
         </Button>
-        <Button size="sm" variant="destructive" onClick={handleDeleteCustomer}>
-          Excluir devedor
+        <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleDeleteCustomer}>
+          <Trash2 className="h-4 w-4" /> Excluir
         </Button>
       </div>
 
-      <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="pt-2 font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
         Vendas
       </p>
 
@@ -159,7 +185,9 @@ export function CustomerDetails() {
           description="Registre a primeira venda fiado deste cliente para acompanhar parcelas e recebimentos."
           action={
             <Button asChild className="w-full">
-              <Link to={`/nova-venda?customerId=${customer.id}`}>+ Nova venda</Link>
+              <Link to={`/nova-venda?customerId=${customer.id}`}>
+                <Plus className="h-4 w-4" /> Nova venda
+              </Link>
             </Button>
           }
         />
@@ -172,15 +200,9 @@ export function CustomerDetails() {
   )
 }
 
-const METHOD_LABEL: Record<ReceiptMethod, string> = {
-  PIX: 'Pix',
-  CARD: 'Cartão',
-  CREDIT: 'Crédito',
-  DEBIT: 'Débito',
-  CASH: 'Dinheiro',
-}
-
-const ALL_METHODS: ReceiptMethod[] = ['PIX', 'CARD', 'CREDIT', 'DEBIT', 'CASH']
+// Rótulos/ordem vêm da fonte única do core — ampliar formas = editar lá.
+const METHOD_LABEL = RECEIPT_METHOD_LABELS
+const ALL_METHODS: ReceiptMethod[] = ALL_RECEIPT_METHODS
 
 function methodsLabel(methods: ReceiptMethod[], amounts: number[] = []): string {
   if (!methods.length) return 'sem forma'
@@ -205,6 +227,7 @@ function attachUploads(rows: AttachRow[]): AttachmentUpload[] {
 }
 
 function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
+  const confirm = useConfirm()
   const { mutateAsync: removeSale } = useMutation({ mutationFn: deleteSale })
   const { mutateAsync: charge, isPending: charging } = useMutation({
     mutationFn: () => getChargeMessage(sale.id),
@@ -266,7 +289,13 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
   const parcelsSum = computedValues.reduce((s, v) => s + v, 0)
 
   async function handleDelete() {
-    if (!confirm('Excluir esta venda?')) return
+    const ok = await confirm({
+      title: 'Excluir esta venda?',
+      description: 'Parcelas e recebimentos dela também somem. Essa ação não tem volta.',
+      confirmLabel: 'Excluir venda',
+      destructive: true,
+    })
+    if (!ok) return
     await removeSale(sale.id)
     onChange()
   }
@@ -299,19 +328,22 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
           <div>
             <p className="font-semibold">{sale.description || 'Venda'}</p>
             <p className="text-sm text-muted-foreground">
-              {sale.type === 'BY_TOTAL' ? 'Por valor final' : sale.type === 'AUTOMATIC' ? 'Automática' : 'Manual'}{' '}
-              · {formatDate(sale.saleDate)}
+              {sale.saleKind ?? (sale.type === 'BY_TOTAL' ? 'Por valor final' : sale.type === 'AUTOMATIC' ? 'Automática' : 'Promissória')}
+              {sale.customerKind ? ` · ${sale.customerKind}` : ''}
+              {' · '}{formatDate(sale.saleDate)}
+              {sale.origin ? ` · ${sale.origin}` : ''}
+              {sale.deliveryType ? ` · ${sale.deliveryType}` : ''}
             </p>
           </div>
           {sale.settled ? (
-            <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+            <span className="shrink-0 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-success">
               Quitada
             </span>
           ) : (
             <span
               className={cn(
                 'shrink-0 font-bold tabular-nums',
-                sale.balanceInCents > 0 ? 'text-destructive' : 'text-primary',
+                sale.balanceInCents > 0 ? 'text-destructive' : 'text-success',
               )}
             >
               {formatCurrency(sale.balanceInCents)}
@@ -329,10 +361,47 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
         {sale.productCostInCents > 0 && (
           <p className="text-sm">
             Custo {formatCurrency(sale.productCostInCents)} ·{' '}
-            <span className="font-semibold text-primary">
-              lucro previsto {formatCurrency(sale.profitInCents)}
+            <span
+              className={cn(
+                'font-semibold',
+                sale.profitInCents >= 0 ? 'text-success' : 'text-destructive',
+              )}
+            >
+              {sale.profitInCents >= 0 ? 'lucro' : 'prejuízo'} {formatCurrency(sale.profitInCents)}
             </span>
+            {sale.marginPercent != null && (
+              <span className="text-muted-foreground">
+                {' · '}margem {sale.marginPercent.toLocaleString('pt-BR')}%
+                {sale.markupPercent != null &&
+                  ` · mark-up ${sale.markupPercent.toLocaleString('pt-BR')}%`}
+              </span>
+            )}
           </p>
+        )}
+
+        {(sale.items?.length ?? 0) > 0 && (
+          <div className="rounded-md bg-secondary/40 p-3">
+            <p className="mb-1 font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Itens
+            </p>
+            <ul className="divide-y divide-border/60">
+              {sale.items!.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-2 py-1.5 text-sm first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{item.nameSnapshot}</p>
+                    {item.warrantyUntil && (
+                      <p className="text-xs text-muted-foreground">
+                        garantia até {formatDate(item.warrantyUntil)}
+                      </p>
+                    )}
+                  </div>
+                  <span className="shrink-0 font-semibold tabular-nums">
+                    {formatCurrency(item.priceInCents - item.discountInCents)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         <div className="flex flex-wrap gap-2">
@@ -362,29 +431,31 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                 <DialogTitle>Editar venda</DialogTitle>
               </DialogHeader>
               <div>
-                <Label>Descrição</Label>
-                <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+                <Label htmlFor="edit-sale-desc">Descrição</Label>
+                <Input id="edit-sale-desc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
               </div>
               <div>
-                <Label>Custo do produto (R$)</Label>
-                <CurrencyInput valueInCents={editCost} onChangeCents={setEditCost} />
+                <Label htmlFor="edit-sale-cost">Custo do produto (R$)</Label>
+                <CurrencyInput id="edit-sale-cost" valueInCents={editCost} onChangeCents={setEditCost} />
               </div>
               <div>
-                <Label>Data da venda</Label>
-                <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                <Label htmlFor="edit-sale-date">Data da venda</Label>
+                <DatePicker id="edit-sale-date" value={editDate} onChange={setEditDate} />
               </div>
 
-              <button
-                type="button"
-                onClick={() => setReparcelar((v) => !v)}
-                className={cn(
-                  'flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm',
-                  reparcelar ? 'border-primary/40 bg-primary/5 text-primary' : 'text-muted-foreground',
-                )}
-              >
-                <span>Reparcelar (valor e data de cada parcela)</span>
-                <span className="font-semibold">{reparcelar ? 'ON' : 'OFF'}</span>
-              </button>
+              <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5">
+                <label
+                  htmlFor="edit-sale-reparcelar"
+                  className={cn('text-sm', reparcelar ? 'text-foreground' : 'text-muted-foreground')}
+                >
+                  Reparcelar (valor e data de cada parcela)
+                </label>
+                <Switch
+                  id="edit-sale-reparcelar"
+                  checked={reparcelar}
+                  onCheckedChange={setReparcelar}
+                />
+              </div>
 
               {reparcelar && (
                 <div className="space-y-3 rounded-md border p-3">
@@ -393,12 +464,13 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                     automaticamente. O que já foi recebido é mantido.
                   </p>
                   <div>
-                    <Label>Valor da venda (total)</Label>
-                    <CurrencyInput valueInCents={editTotal} onChangeCents={setEditTotal} />
+                    <Label htmlFor="reparcel-total">Valor da venda (total)</Label>
+                    <CurrencyInput id="reparcel-total" valueInCents={editTotal} onChangeCents={setEditTotal} />
                   </div>
                   <div>
-                    <Label>Nº de parcelas</Label>
+                    <Label htmlFor="reparcel-count">Nº de parcelas</Label>
                     <Input
+                      id="reparcel-count"
                       type="number"
                       min={1}
                       value={parcels.length}
@@ -418,13 +490,13 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                             }
                             disabled={isLast && parcels.length > 1}
                           />
-                          <Input
-                            type="date"
-                            className="w-40"
+                          <DatePicker
+                            aria-label={`Vencimento da ${i + 1}ª parcela`}
+                            className="w-44"
                             value={p.date}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setParcels((prev) =>
-                                prev.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)),
+                                prev.map((x, j) => (j === i ? { ...x, date: value } : x)),
                               )
                             }
                           />
@@ -439,7 +511,7 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
                 </div>
               )}
 
-              <Button className="w-full" onClick={handleSaveSale} disabled={saving}>
+              <Button className="w-full" onClick={handleSaveSale} loading={saving}>
                 Salvar alterações
               </Button>
             </DialogContent>
@@ -452,12 +524,18 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
           ))}
         </div>
 
+        {(sale.items?.length ?? 0) === 0 && (
+          <LinkProductBanner sale={sale} onChange={onChange} />
+        )}
+
+        <SalePhotosSection sale={sale} onChange={onChange} />
+
         <ReceiptsSection sale={sale} onChange={onChange} />
 
         <ShareLinkSection saleId={sale.id} />
 
-        <Button size="sm" variant="ghost" className="text-destructive" onClick={handleDelete}>
-          Excluir venda
+        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleDelete}>
+          <Trash2 className="h-4 w-4" /> Excluir venda
         </Button>
       </CardContent>
     </Card>
@@ -465,6 +543,7 @@ function SaleCard({ sale, onChange }: { sale: Sale; onChange: () => void }) {
 }
 
 function ShareLinkSection({ saleId }: { saleId: string }) {
+  const confirm = useConfirm()
   const { data: state, isLoading } = useQuery({
     queryKey: ['share-link', saleId],
     queryFn: () => getShareLink(saleId),
@@ -502,7 +581,13 @@ function ShareLinkSection({ saleId }: { saleId: string }) {
   }
 
   async function handleRevoke() {
-    if (!confirm('Revogar o link? Quem tiver o endereço deixará de ver a venda.')) return
+    const ok = await confirm({
+      title: 'Revogar o link público?',
+      description: 'Quem tiver o endereço deixará de ver a venda.',
+      confirmLabel: 'Revogar',
+      destructive: true,
+    })
+    if (!ok) return
     try {
       await revoke()
       toast.success('Link revogado.')
@@ -515,7 +600,7 @@ function ShareLinkSection({ saleId }: { saleId: string }) {
   return (
     <div className="rounded-md bg-secondary/40 p-3">
       <div className="mb-2 flex items-center justify-between">
-        <p className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="flex items-center gap-1 font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           <Link2 className="h-3.5 w-3.5" /> Link público
         </p>
         {state && !isActive && (
@@ -529,7 +614,7 @@ function ShareLinkSection({ saleId }: { saleId: string }) {
 
       {state && !state.exists && (
         <p className="text-xs text-muted-foreground">
-          Gere um link para o devedor acompanhar esta venda sem login.
+          Gere um link para o cliente acompanhar esta venda sem login.
         </p>
       )}
 
@@ -569,6 +654,7 @@ function ShareLinkSection({ saleId }: { saleId: string }) {
 }
 
 function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void }) {
+  const confirm = useConfirm()
   const [open, setOpen] = useState(false)
   const [amountCents, setAmountCents] = useState(0)
   const [methods, setMethods] = useState<ReceiptMethod[]>([])
@@ -672,7 +758,13 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   }
 
   async function handleVoid(receipt: Receipt) {
-    if (!confirm(`Estornar o recebimento de ${formatCurrency(receipt.amountInCents)}?`)) return
+    const ok = await confirm({
+      title: `Estornar ${formatCurrency(receipt.amountInCents)}?`,
+      description: 'O valor volta ao saldo devedor. O registro original fica no histórico.',
+      confirmLabel: 'Estornar',
+      destructive: true,
+    })
+    if (!ok) return
     try {
       await revert({ saleId: sale.id, receiptId: receipt.id })
       toast.success('Recebimento estornado.')
@@ -685,7 +777,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
   return (
     <div className="rounded-md bg-secondary/40 p-3">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Recebimentos
         </p>
         {!sale.settled && (
@@ -702,8 +794,9 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 <strong>{formatCurrency(sale.balanceInCents)}</strong>.
               </p>
               <div>
-                <Label>Valor recebido (R$) *</Label>
+                <Label htmlFor="receipt-amount">Valor recebido (R$) *</Label>
                 <CurrencyInput
+                  id="receipt-amount"
                   valueInCents={amountCents}
                   onChangeCents={setAmountCents}
                   placeholder="0,00"
@@ -732,19 +825,16 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 total={amountCents}
               />
               <div>
-                <Label>Data</Label>
-                <Input
-                  type="date"
-                  value={receivedAt}
-                  onChange={(e) => setReceivedAt(e.target.value)}
-                />
+                <Label htmlFor="receipt-date">Data</Label>
+                <DatePicker id="receipt-date" value={receivedAt} onChange={setReceivedAt} />
               </div>
               <div>
                 <Label>Comprovantes (foto/PDF)</Label>
                 <AttachmentRows rows={attachRows} setRows={setAttachRows} allowEmpty />
-                <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <label className="mt-2 flex min-h-[36px] cursor-pointer items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
+                    className="h-4 w-4 shrink-0"
                     checked={deferProof}
                     onChange={(e) => setDeferProof(e.target.checked)}
                   />
@@ -752,15 +842,16 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
                 </label>
               </div>
               <div>
-                <Label>Observação</Label>
+                <Label htmlFor="receipt-note">Observação</Label>
                 <Textarea
+                  id="receipt-note"
                   rows={2}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Opcional"
                 />
               </div>
-              <Button className="w-full" onClick={handleCreate} disabled={isPending}>
+              <Button className="w-full" onClick={handleCreate} loading={isPending}>
                 Salvar recebimento
               </Button>
             </DialogContent>
@@ -771,64 +862,75 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
       {sale.receipts.length === 0 ? (
         <p className="text-xs text-muted-foreground">Nenhum recebimento ainda.</p>
       ) : (
-        <ul className="space-y-1">
+        <ul className="divide-y divide-border/60">
           {sale.receipts.map((r) => {
             const isReversal = r.amountInCents < 0
             const alreadyReversed = reversedIds.has(r.id)
             const pendingProof =
               !isReversal && !alreadyReversed && !r.receiptPath && r.attachments.length === 0
             return (
-              <li key={r.id} className="flex items-center justify-between text-xs">
-                <span className={cn(isReversal && 'text-muted-foreground')}>
-                  {isReversal ? '↩ Estorno ' : '✓ '}
-                  <strong>{formatCurrency(Math.abs(r.amountInCents))}</strong> ·{' '}
-                  {methodsLabel(r.methods, r.methodAmountsInCents)} · {formatDate(r.receivedAt)}
-                  {r.note && !isReversal && ` · ${r.note}`}
-                  {r.attachments.map((a, i) => (
-                    <span key={a.id}>
-                      {' · '}
-                      <a
-                        className="text-primary"
-                        href={`${import.meta.env.VITE_API_URL}/comprovantes/${a.path}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {a.method ? METHOD_LABEL[a.method] : `comprovante ${i + 1}`}
-                      </a>
-                    </span>
-                  ))}
-                  {r.receiptPath && r.attachments.length === 0 && (
-                    <>
-                      {' · '}
-                      <a
-                        className="text-primary"
-                        href={`${import.meta.env.VITE_API_URL}/comprovantes/${r.receiptPath}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        comprovante
-                      </a>
-                    </>
+              <li key={r.id} className="flex items-start justify-between gap-2 py-2 first:pt-0 last:pb-0">
+                <div className={cn('flex min-w-0 items-start gap-1.5 text-xs', isReversal && 'text-muted-foreground')}>
+                  {isReversal ? (
+                    <Undo2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-label="estorno" />
+                  ) : (
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-label="recebido" />
                   )}
-                  {pendingProof && (
-                    <span className="ml-1 rounded-full bg-destructive/10 px-2 py-0.5 font-semibold text-destructive">
-                      ⚠ sem comprovante
-                    </span>
-                  )}
-                </span>
+                  <span className="min-w-0">
+                    {isReversal && 'Estorno '}
+                    <strong className="tabular-nums">{formatCurrency(Math.abs(r.amountInCents))}</strong> ·{' '}
+                    {methodsLabel(r.methods, r.methodAmountsInCents)} · {formatDate(r.receivedAt)}
+                    {r.note && !isReversal && ` · ${r.note}`}
+                    {r.attachments.map((a, i) => (
+                      <span key={a.id}>
+                        {' · '}
+                        <a
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                          href={`${import.meta.env.VITE_API_URL}/comprovantes/${a.path}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {a.method ? METHOD_LABEL[a.method] : `comprovante ${i + 1}`}
+                        </a>
+                      </span>
+                    ))}
+                    {r.receiptPath && r.attachments.length === 0 && (
+                      <>
+                        {' · '}
+                        <a
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                          href={`${import.meta.env.VITE_API_URL}/comprovantes/${r.receiptPath}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          comprovante
+                        </a>
+                      </>
+                    )}
+                    {pendingProof && (
+                      <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 font-semibold text-destructive">
+                        <AlertTriangle className="h-3 w-3" /> sem comprovante
+                      </span>
+                    )}
+                  </span>
+                </div>
                 {!isReversal && !alreadyReversed && (
-                  <span className="ml-2 flex shrink-0 items-center gap-2">
+                  <span className="-my-1 flex shrink-0 items-center">
                     <button
-                      className="flex items-center gap-0.5 text-primary"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                      aria-label={`Editar recebimento de ${formatCurrency(r.amountInCents)}`}
+                      title="Editar"
                       onClick={() => openEdit(r)}
                     >
-                      <Pencil className="h-3 w-3" /> editar
+                      <Pencil className="h-4 w-4" />
                     </button>
                     <button
-                      className="flex items-center gap-0.5 text-destructive"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                      aria-label={`Estornar recebimento de ${formatCurrency(r.amountInCents)}`}
+                      title="Estornar"
                       onClick={() => handleVoid(r)}
                     >
-                      <Undo2 className="h-3 w-3" /> estornar
+                      <Undo2 className="h-4 w-4" />
                     </button>
                   </span>
                 )}
@@ -845,8 +947,8 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
             <DialogTitle>Editar recebimento</DialogTitle>
           </DialogHeader>
           <div>
-            <Label>Valor (R$)</Label>
-            <CurrencyInput valueInCents={editAmount} onChangeCents={setEditAmount} />
+            <Label htmlFor="edit-receipt-amount">Valor (R$)</Label>
+            <CurrencyInput id="edit-receipt-amount" valueInCents={editAmount} onChangeCents={setEditAmount} />
           </div>
           <div>
             <Label>Forma(s) de pagamento (opcional)</Label>
@@ -871,8 +973,8 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
             total={editAmount}
           />
           <div>
-            <Label>Data</Label>
-            <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+            <Label htmlFor="edit-receipt-date">Data</Label>
+            <DatePicker id="edit-receipt-date" value={editDate} onChange={setEditDate} />
           </div>
           <div>
             <Label>Adicionar comprovantes (opcional)</Label>
@@ -882,10 +984,10 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
             </p>
           </div>
           <div>
-            <Label>Observação</Label>
-            <Textarea rows={2} value={editNote} onChange={(e) => setEditNote(e.target.value)} />
+            <Label htmlFor="edit-receipt-note">Observação</Label>
+            <Textarea id="edit-receipt-note" rows={2} value={editNote} onChange={(e) => setEditNote(e.target.value)} />
           </div>
-          <Button className="w-full" onClick={handleEdit} disabled={editing}>
+          <Button className="w-full" onClick={handleEdit} loading={editing}>
             Salvar alterações
           </Button>
         </DialogContent>
@@ -895,6 +997,7 @@ function ReceiptsSection({ sale, onChange }: { sale: Sale; onChange: () => void 
 }
 
 function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () => void }) {
+  const confirm = useConfirm()
   const [lateOpen, setLateOpen] = useState(false)
   const [lateFee, setLateFee] = useState('25')
   const [reason, setReason] = useState('')
@@ -922,7 +1025,12 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
   }
 
   async function handleUnmark() {
-    if (!confirm('Tirar o atraso e remover o juros desta parcela?')) return
+    const ok = await confirm({
+      title: 'Tirar o atraso?',
+      description: 'O juros de atraso desta parcela será removido.',
+      confirmLabel: 'Tirar atraso',
+    })
+    if (!ok) return
     await unmarkLate(inst.id)
     onChange()
   }
@@ -937,11 +1045,11 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
           <p className="font-medium">Parcela {inst.number}</p>
           {editingDue ? (
             <div className="mt-1 flex items-center gap-1">
-              <Input
-                type="date"
-                className="h-8 w-auto"
+              <DatePicker
+                aria-label="Novo vencimento"
+                className="w-44"
                 value={dueValue}
-                onChange={(e) => setDueValue(e.target.value)}
+                onChange={setDueValue}
               />
               <Button size="sm" className="h-8" onClick={handleSaveDue}>
                 Salvar
@@ -956,16 +1064,17 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
               </Button>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
-              Vence {formatDate(inst.dueDate)}{' '}
+            <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+              <span className="whitespace-nowrap">Vence {formatDate(inst.dueDate)}</span>
               <button
-                className="text-primary underline"
+                className="inline-flex h-7 items-center gap-0.5 rounded px-1 font-medium text-primary underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                aria-label={`Editar vencimento da parcela ${inst.number}`}
                 onClick={() => {
                   setDueValue(inst.dueDate.slice(0, 10))
                   setEditingDue(true)
                 }}
               >
-                editar
+                <Pencil className="h-3 w-3" /> editar
               </button>
             </p>
           )}
@@ -976,7 +1085,7 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
           </div>
         </div>
         <div className="text-right">
-          <p className="font-bold">{formatCurrency(inst.effectiveInCents)}</p>
+          <p className="font-bold tabular-nums">{formatCurrency(inst.effectiveInCents)}</p>
           {inst.paidInCents > 0 && inst.balanceInCents > 0 && (
             <p className="text-xs text-muted-foreground">
               pago {formatCurrency(inst.paidInCents)} · falta{' '}
@@ -1017,16 +1126,18 @@ function InstallmentRow({ inst, onChange }: { inst: Installment; onChange: () =>
                   Aplica juros (padrão 25% sobre o principal em aberto, uma única vez).
                 </p>
                 <div>
-                  <Label>Taxa de atraso (%)</Label>
+                  <Label htmlFor="late-fee">Taxa de atraso (%)</Label>
                   <Input
+                    id="late-fee"
                     inputMode="decimal"
                     value={lateFee}
                     onChange={(e) => setLateFee(e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>Motivo do atraso</Label>
+                  <Label htmlFor="late-reason">Motivo do atraso</Label>
                   <Textarea
+                    id="late-reason"
                     rows={3}
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
@@ -1066,8 +1177,9 @@ function AttachmentRows({
               setRows((prev) => prev.map((r, j) => (j === i ? { ...r, file: e.target.files?.[0] ?? null } : r)))
             }
           />
-          <select
-            className="h-9 rounded-md border border-input bg-card px-2 text-sm transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          <Select
+            aria-label="Forma de pagamento do comprovante"
+            className="w-32 shrink-0"
             value={row.method}
             onChange={(e) =>
               setRows((prev) =>
@@ -1081,15 +1193,16 @@ function AttachmentRows({
                 {METHOD_LABEL[m]}
               </option>
             ))}
-          </select>
+          </Select>
           {(rows.length > 1 || allowEmpty) && (
             <Button
               type="button"
               size="icon"
               variant="ghost"
+              aria-label="Remover comprovante"
               onClick={() => setRows((prev) => prev.filter((_, j) => j !== i))}
             >
-              <Undo2 className="h-4 w-4 text-destructive" />
+              <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           )}
         </div>
@@ -1151,11 +1264,199 @@ function Tag({
   const tones = {
     gray: 'bg-secondary text-muted-foreground',
     red: 'bg-destructive/10 text-destructive',
-    green: 'bg-primary/10 text-primary',
+    green: 'bg-success/10 text-success',
   }
   return (
     <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', tones[tone])}>
       {children}
     </span>
+  )
+}
+
+// Fotos da venda (025): etiqueta do marketplace, nº de série, comprovante de
+// entrega (motoqueiro/Uber)… Anexa e remove sem sair da tela.
+const PHOTO_KINDS = ['Etiqueta', 'Número de série', 'Entrega', 'Outra']
+
+function SalePhotosSection({ sale, onChange }: { sale: Sale; onChange: () => void }) {
+  const confirm = useConfirm()
+  const [kind, setKind] = useState(PHOTO_KINDS[0])
+  const [files, setFiles] = useState<File[]>([])
+  const [sending, setSending] = useState(false)
+  const [inputKey, setInputKey] = useState(0)
+
+  const photos = sale.attachments ?? []
+
+  async function handleAdd() {
+    if (!files.length) return toast.error('Escolha a(s) foto(s).')
+    setSending(true)
+    try {
+      await addSaleAttachments(sale.id, kind, files)
+      toast.success('Foto(s) anexada(s)!')
+      setFiles([])
+      setInputKey((k) => k + 1)
+      onChange()
+    } catch {
+      toast.error('Não foi possível anexar.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    const ok = await confirm({
+      title: 'Excluir esta foto?',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    })
+    if (!ok) return
+    try {
+      await deleteSaleAttachment(sale.id, id)
+      onChange()
+    } catch {
+      toast.error('Não foi possível excluir.')
+    }
+  }
+
+  return (
+    <div className="rounded-md bg-secondary/40 p-3">
+      <p className="mb-2 flex items-center gap-1 font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <Camera className="h-3.5 w-3.5" /> Fotos da venda
+      </p>
+
+      {photos.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {photos.map((photo) => (
+            <span
+              key={photo.id}
+              className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-1 text-xs font-medium shadow-sm"
+            >
+              <a
+                className="text-primary underline-offset-2 hover:underline"
+                href={`${import.meta.env.VITE_API_URL}/comprovantes/${photo.path}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {photo.kind ?? 'foto'}
+              </a>
+              <button
+                aria-label="Excluir foto"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={() => handleDelete(photo.id)}
+              >
+                <Undo2 className="hidden" />
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          aria-label="Tipo da foto"
+          className="w-44"
+          value={kind}
+          onChange={(e) => setKind(e.target.value)}
+        >
+          {PHOTO_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {k}
+            </option>
+          ))}
+        </Select>
+        <Input
+          key={inputKey}
+          type="file"
+          accept="image/*,application/pdf"
+          multiple
+          className="max-w-xs flex-1"
+          aria-label="Fotos da venda"
+          onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+        />
+        <Button size="sm" variant="outline" onClick={handleAdd} loading={sending} disabled={!files.length}>
+          Anexar
+        </Button>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Etiqueta do marketplace, foto do nº de série, entrega (motoqueiro/Uber)…
+      </p>
+    </div>
+  )
+}
+
+// Venda sem produto do sistema: alerta de obrigação + vínculo do produto
+// registrado (não altera total/parcelas; corrige custo/lucro e descrição).
+function LinkProductBanner({ sale, onChange }: { sale: Sale; onChange: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [unitId, setUnitId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const { data: stock } = useQuery({
+    queryKey: ['stock-units', 'AVAILABLE'],
+    queryFn: () => fetchStockUnits({ status: 'AVAILABLE' }),
+    enabled: open,
+  })
+
+  async function handleLink() {
+    if (!unitId) return toast.error('Escolha a unidade do estoque.')
+    setSaving(true)
+    try {
+      await addSaleItem(sale.id, unitId)
+      toast.success('Produto vinculado — venda regularizada!')
+      queryClient.invalidateQueries({ queryKey: ['stock-units'] })
+      setOpen(false)
+      onChange()
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message
+      toast.error(msg ?? 'Não foi possível vincular.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+        Sem produto do sistema — registre/vincule o produto desta venda.
+      </p>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        Vincular produto
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="md:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Vincular produto do estoque</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Escolha a unidade vendida. O total e as parcelas não mudam — o custo
+            entra no lucro e a garantia passa a valer.
+          </p>
+          <Select
+            aria-label="Unidade do estoque"
+            value={unitId}
+            onChange={(e) => setUnitId(e.target.value)}
+          >
+            <option value="">Selecionar…</option>
+            {(stock?.units ?? []).map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.product.name}
+                {u.imei1 ? ` · IMEI ${u.imei1.slice(-6)}` : u.serialNumber ? ` · SN ${u.serialNumber}` : ''}
+                {` · custo ${formatCurrency(u.finalCostInCents)}`}
+              </option>
+            ))}
+          </Select>
+          {(stock?.units ?? []).length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Nenhuma unidade disponível — dê entrada na compra na aba Loja primeiro.
+            </p>
+          )}
+          <Button className="w-full" onClick={handleLink} loading={saving} disabled={!unitId}>
+            Vincular à venda
+          </Button>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

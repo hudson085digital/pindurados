@@ -10,6 +10,8 @@ import { updateReceipt } from './update-receipt'
 import { voidReceipt } from './void-receipt'
 import { chargeMessage } from './charge-message'
 import { createShareLink, getShareLink, revokeShareLink } from './share-link'
+import { addSaleAttachments, deleteSaleAttachment } from './attachments'
+import { addSaleItem } from './add-item'
 
 export async function salesRoutes(app: FastifyInstance) {
   app.addHook('onRequest', verifyJwt)
@@ -24,6 +26,13 @@ export async function salesRoutes(app: FastifyInstance) {
   app.post('/sales/:saleId/receipts', createReceipt)
   app.put('/sales/:saleId/receipts/:receiptId', updateReceipt)
   app.post('/sales/:saleId/receipts/:receiptId/void', voidReceipt)
+
+  // Vincular produto do estoque a venda existente — 025
+  app.post('/sales/:saleId/items', addSaleItem)
+
+  // Fotos da venda (etiqueta, nº de série, comprovante de entrega…) — 025
+  app.post('/sales/:saleId/attachments', addSaleAttachments)
+  app.delete('/sales/:saleId/attachments/:attachmentId', deleteSaleAttachment)
 
   // Mensagem de cobrança
   app.get('/sales/:saleId/charge-message', chargeMessage)

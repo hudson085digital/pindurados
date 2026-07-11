@@ -18,6 +18,18 @@ export async function getCustomerDetails(id: string) {
 }
 
 export interface CreateCustomerBody {
+  // 025 — mais dados (todos opcionais)
+  kind?: string
+  cpfCnpj?: string
+  instagram?: string
+  tags?: string[]
+  addressZip?: string
+  addressStreet?: string
+  addressNumber?: string
+  addressDistrict?: string
+  addressCity?: string
+  addressState?: string
+  addressComplement?: string
   name: string
   phone?: string | null
   note?: string | null

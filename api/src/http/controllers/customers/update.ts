@@ -10,6 +10,18 @@ export async function updateCustomer(request: FastifyRequest, reply: FastifyRepl
     phone: z.string().optional().nullable(),
     note: z.string().optional().nullable(),
     autoReminder: z.boolean().optional(),
+    // 025 — campos extras (todos opcionais)
+    kind: z.string().trim().optional().nullable(),
+    cpfCnpj: z.string().trim().optional().nullable(),
+    instagram: z.string().trim().optional().nullable(),
+    tags: z.array(z.string().trim().min(1)).optional(),
+    addressZip: z.string().trim().optional().nullable(),
+    addressStreet: z.string().trim().optional().nullable(),
+    addressNumber: z.string().trim().optional().nullable(),
+    addressDistrict: z.string().trim().optional().nullable(),
+    addressCity: z.string().trim().optional().nullable(),
+    addressState: z.string().trim().optional().nullable(),
+    addressComplement: z.string().trim().optional().nullable(),
   })
 
   const { id } = paramsSchema.parse(request.params)

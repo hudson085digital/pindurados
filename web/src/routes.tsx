@@ -9,6 +9,11 @@ import { Customers } from './pages/app/customers'
 import { CustomerDetails } from './pages/app/customer-details'
 import { NewSale } from './pages/app/new-sale'
 import { PixKeys } from './pages/app/pix-keys'
+import { LojaLayout } from './pages/app/loja'
+import { Compras } from './pages/app/loja/compras'
+import { Estoque } from './pages/app/loja/estoque'
+import { Produtos } from './pages/app/loja/produtos'
+import { Navigate, useParams } from 'react-router-dom'
 import { PublicSale } from './pages/public/public-sale'
 
 export const router = createBrowserRouter([
@@ -26,9 +31,22 @@ export const router = createBrowserRouter([
     ),
     children: [
       { path: '/', element: <Dashboard /> },
-      { path: '/devedores', element: <Customers /> },
-      { path: '/devedores/:id', element: <CustomerDetails /> },
+      { path: '/clientes', element: <Customers /> },
+      { path: '/clientes/:id', element: <CustomerDetails /> },
+      // rotas antigas: redireciona (rename devedor → cliente)
+      { path: '/devedores', element: <Navigate to="/clientes" replace /> },
+      { path: '/devedores/:id', element: <RedirectToCliente /> },
       { path: '/nova-venda', element: <NewSale /> },
+      {
+        path: '/loja',
+        element: <LojaLayout />,
+        children: [
+          { index: true, element: <Navigate to="/loja/compras" replace /> },
+          { path: 'compras', element: <Compras /> },
+          { path: 'estoque', element: <Estoque /> },
+          { path: 'produtos', element: <Produtos /> },
+        ],
+      },
       { path: '/chaves-pix', element: <PixKeys /> },
     ],
   },
@@ -41,3 +59,9 @@ export const router = createBrowserRouter([
     ],
   },
 ])
+
+// Redireciona /devedores/:id → /clientes/:id (rename de 11/07/2026).
+function RedirectToCliente() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/clientes/${id}`} replace />
+}

@@ -25,3 +25,8 @@ dados/
 api/uploads/
 *.log
 .DS_Store
+
+# Dados pessoais de referência (não versionar)
+screenshots/
+*.xlsx
+*.tsbuildinfo

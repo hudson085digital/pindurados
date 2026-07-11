@@ -28,6 +28,8 @@ export interface PublicSaleView {
     attachments: { path: string; method: ReceiptMethod | null }[]
     receiptPath: string | null
   }[]
+  // 025 — itens vendidos (só nome e garantia)
+  items?: { name: string; warrantyUntil: string | null }[]
   pix?: { type: PixKeyType; key: string; holderName: string; bankName: string }
   contact?: { phone: string; whatsappUrl: string }
 }

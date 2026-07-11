@@ -1,0 +1,461 @@
+<!-- MOB PHONE — Design System -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOB PHONE — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  /* ---- Brand primary (orange) ---- */
+  --c-primary-50:#FFF7ED; --c-primary-100:#FFEDD5; --c-primary-200:#FED7AA;
+  --c-primary-300:#FDBA74; --c-primary-400:#FB923C; --c-primary-500:#F97316;
+  --c-primary-600:#EA580C; --c-primary-700:#C2410C; --c-primary-800:#9A3412; --c-primary-900:#7C2D12;
+  /* ---- Accent (red) ---- */
+  --c-accent-400:#F87171; --c-accent-500:#EF4444; --c-accent-600:#DC2626;
+  /* ---- Neutral (slate) ---- */
+  --c-n-50:#F8FAFC; --c-n-100:#F1F5F9; --c-n-200:#E2E8F0; --c-n-300:#CBD5E1;
+  --c-n-400:#94A3B8; --c-n-500:#64748B; --c-n-600:#475569; --c-n-700:#334155;
+  --c-n-800:#1E293B; --c-n-900:#0F172A;
+  /* ---- Semantic ---- */
+  --c-success:#16A34A; --c-success-bg:#DCFCE7;
+  --c-warning:#CA8A04; --c-warning-bg:#FEF9C3;
+  --c-danger:#E11D48;  --c-danger-bg:#FFE4E6;
+  --c-info:#2563EB;    --c-info-bg:#DBEAFE;
+  /* ---- Signature gradient ---- */
+  --grad-brand:linear-gradient(135deg,#F97316 0%,#EF4444 100%);
+
+  /* ---- Typography ---- */
+  --font-display:'Poppins',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+
+  /* ---- Spacing (4px base) ---- */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px;
+  --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-12:48px; --sp-16:64px;
+
+  /* ---- Radius ---- */
+  --r-sm:6px; --r-md:10px; --r-lg:16px; --r-xl:24px; --r-full:999px;
+
+  /* ---- Elevation ---- */
+  --sh-sm:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.10);
+  --sh-md:0 4px 12px rgba(15,23,42,.08);
+  --sh-lg:0 12px 32px rgba(15,23,42,.14);
+  --ring:0 0 0 3px rgba(249,115,22,.35);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;font-family:var(--font-body);color:var(--c-n-800);
+  background:var(--c-n-50);line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;color:var(--c-n-900);line-height:1.2}
+code,.mono{font-family:var(--font-mono)}
+a{color:var(--c-primary-600);text-decoration:none}
+
+/* ---------- Layout ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--sp-4);
+  padding:var(--sp-4) var(--sp-6);background:rgba(255,255,255,.85);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--c-n-200);
+}
+.topbar .title{font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--c-n-500)}
+.wrap{max-width:1080px;margin:0 auto;padding:var(--sp-12) var(--sp-6) var(--sp-16)}
+section{margin-bottom:var(--sp-16);scroll-margin-top:80px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c-accent-600);margin-bottom:var(--sp-2)}
+.sec-title{font-size:30px;font-weight:700;margin-bottom:var(--sp-2)}
+.sec-desc{color:var(--c-n-500);max-width:60ch;margin-bottom:var(--sp-8)}
+.grid{display:grid;gap:var(--sp-4)}
+
+/* ---------- Hero ---------- */
+.hero{
+  background:var(--grad-brand);color:#fff;border-radius:var(--r-xl);
+  padding:var(--sp-12);margin-bottom:var(--sp-16);box-shadow:var(--sh-lg);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp-8);flex-wrap:wrap;
+}
+.hero h1{color:#fff;font-size:40px;letter-spacing:-.02em}
+.hero p{margin:var(--sp-3) 0 0;color:rgba(255,255,255,.85);max-width:44ch}
+.hero .logo-badge{width:96px;height:96px;flex:none}
+
+/* ---------- Color swatches ---------- */
+.swatch-row{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--sp-3)}
+.swatch{cursor:pointer;border:none;padding:0;text-align:left;border-radius:var(--r-md);
+  overflow:hidden;box-shadow:var(--sh-sm);background:#fff;transition:transform .12s}
+.swatch:hover{transform:translateY(-2px)}
+.swatch .chip{height:64px}
+.swatch .meta{padding:var(--sp-2) var(--sp-3)}
+.swatch .name{font-size:12px;font-weight:600}
+.swatch .hex{font-family:var(--font-mono);font-size:11px;color:var(--c-n-500)}
+.sem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-4)}
+.sem-card{border-radius:var(--r-lg);padding:var(--sp-4);box-shadow:var(--sh-sm)}
+.sem-card .dot{width:28px;height:28px;border-radius:var(--r-full);margin-bottom:var(--sp-3)}
+.sem-card strong{display:block;font-family:var(--font-display);font-size:14px}
+.sem-card .hex{font-family:var(--font-mono);font-size:12px;color:var(--c-n-500)}
+
+/* ---------- Typography ---------- */
+.type-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-6);
+  padding:var(--sp-4) 0;border-bottom:1px solid var(--c-n-200)}
+.type-row .spec{font-family:var(--font-mono);font-size:12px;color:var(--c-n-400);white-space:nowrap}
+.t-display{font-family:var(--font-display);font-weight:700;font-size:48px;line-height:1.1}
+.t-h1{font-family:var(--font-display);font-weight:700;font-size:36px}
+.t-h2{font-family:var(--font-display);font-weight:600;font-size:28px}
+.t-h3{font-family:var(--font-display);font-weight:600;font-size:22px}
+.t-body{font-size:16px}
+.t-sm{font-size:14px;color:var(--c-n-600)}
+.t-overline{font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--c-accent-600)}
+
+/* ---------- Spacing / radius / shadow ---------- */
+.scale-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:var(--sp-4)}
+.scale-cell{background:#fff;border-radius:var(--r-md);padding:var(--sp-4);box-shadow:var(--sh-sm);text-align:center}
+.scale-cell .bar{height:12px;background:var(--grad-brand);border-radius:var(--r-full);margin-bottom:var(--sp-3)}
+.scale-cell .lbl{font-family:var(--font-mono);font-size:12px;color:var(--c-n-600)}
+.radius-grid,.shadow-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--sp-5)}
+.radius-cell,.shadow-cell{background:#fff;padding:var(--sp-5);text-align:center;box-shadow:var(--sh-sm);border-radius:var(--r-md)}
+.radius-demo{height:72px;background:var(--c-primary-100);border:2px solid var(--c-primary-400);margin-bottom:var(--sp-3)}
+.shadow-demo{height:72px;background:#fff;border-radius:var(--r-md);margin-bottom:var(--sp-3)}
+
+/* ---------- Buttons ---------- */
+.btn{font-family:var(--font-body);font-weight:600;font-size:15px;border-radius:var(--r-md);
+  padding:10px 20px;border:1px solid transparent;cursor:pointer;display:inline-flex;
+  align-items:center;gap:var(--sp-2);transition:filter .15s,background .15s,box-shadow .15s}
+.btn:focus-visible{outline:none;box-shadow:var(--ring)}
+.btn-primary{background:var(--grad-brand);color:#fff}
+.btn-primary:hover{filter:brightness(1.07)}
+.btn-secondary{background:var(--c-primary-50);color:var(--c-primary-700);border-color:var(--c-primary-200)}
+.btn-secondary:hover{background:var(--c-primary-100)}
+.btn-ghost{background:transparent;color:var(--c-n-700)}
+.btn-ghost:hover{background:var(--c-n-100)}
+.btn-danger{background:var(--c-danger);color:#fff}
+.btn-danger:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn-sm{padding:6px 14px;font-size:13px}
+.btn-lg{padding:14px 26px;font-size:17px}
+.btn-row{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+
+/* ---------- Forms ---------- */
+.field{max-width:340px;margin-bottom:var(--sp-5)}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--c-n-700);margin-bottom:var(--sp-2)}
+.input{width:100%;font-family:var(--font-body);font-size:15px;padding:11px 14px;
+  border:1px solid var(--c-n-300);border-radius:var(--r-md);background:#fff;color:var(--c-n-900)}
+.input::placeholder{color:var(--c-n-400)}
+.input:focus{outline:none;border-color:var(--c-primary-500);box-shadow:var(--ring)}
+.input.error{border-color:var(--c-danger)}
+.hint{font-size:12px;margin-top:var(--sp-2);color:var(--c-n-500)}
+.hint.err{color:var(--c-danger)}
+.switch{position:relative;display:inline-block;width:46px;height:26px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--c-n-300);border-radius:var(--r-full);transition:.2s;cursor:pointer}
+.slider::before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;
+  background:#fff;border-radius:50%;transition:.2s;box-shadow:var(--sh-sm)}
+.switch input:checked+.slider{background:var(--c-primary-600)}
+.switch input:checked+.slider::before{transform:translateX(20px)}
+
+/* ---------- Feedback: badges + alerts ---------- */
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  padding:4px 10px;border-radius:var(--r-full);line-height:1.4}
+.badge-primary{background:var(--c-primary-100);color:var(--c-primary-700)}
+.badge-success{background:var(--c-success-bg);color:var(--c-success)}
+.badge-warning{background:var(--c-warning-bg);color:var(--c-warning)}
+.badge-danger{background:var(--c-danger-bg);color:var(--c-danger)}
+.badge-neutral{background:var(--c-n-200);color:var(--c-n-700)}
+.alert{display:flex;gap:var(--sp-3);padding:var(--sp-4);border-radius:var(--r-md);
+  border:1px solid transparent;margin-bottom:var(--sp-3);font-size:14px}
+.alert .ic{font-weight:700;flex:none}
+.alert-info{background:var(--c-info-bg);border-color:#BFDBFE;color:#1E40AF}
+.alert-success{background:var(--c-success-bg);border-color:#BBF7D0;color:#166534}
+.alert-warning{background:var(--c-warning-bg);border-color:#FEF08A;color:#854D0E}
+.alert-danger{background:var(--c-danger-bg);border-color:#FECDD3;color:#9F1239}
+
+/* ---------- Cards ---------- */
+.card{background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-md);padding:var(--sp-6);border:1px solid var(--c-n-100)}
+.card h3{margin-bottom:var(--sp-2)}
+.card p{color:var(--c-n-500);margin:0 0 var(--sp-4)}
+
+/* ---------- Signature: phone mockup ---------- */
+.showcase{display:flex;gap:var(--sp-10);align-items:center;flex-wrap:wrap}
+.phone{width:280px;height:560px;background:var(--c-n-900);border-radius:44px;padding:12px;
+  box-shadow:var(--sh-lg);flex:none;position:relative}
+.phone .screen{background:var(--c-n-50);border-radius:34px;height:100%;overflow:hidden;display:flex;flex-direction:column}
+.phone .notch{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:96px;height:22px;
+  background:var(--c-n-900);border-radius:var(--r-full);z-index:2}
+.app-head{background:var(--grad-brand);color:#fff;padding:34px 18px 16px;flex:none}
+.app-head .hello{font-size:12px;opacity:.85}
+.app-head .name{font-family:var(--font-display);font-weight:600;font-size:19px}
+.app-body{padding:var(--sp-4);overflow-y:auto;flex:1}
+.mini-card{background:#fff;border-radius:var(--r-md);padding:var(--sp-3);box-shadow:var(--sh-sm);margin-bottom:var(--sp-3)}
+.mini-card .row{display:flex;justify-content:space-between;align-items:center}
+.mini-card .k{font-size:12px;color:var(--c-n-500)}
+.mini-card .v{font-family:var(--font-display);font-weight:600;font-size:16px}
+.list-item{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) 0;border-bottom:1px solid var(--c-n-200)}
+.list-item .av{width:36px;height:36px;border-radius:var(--r-full);background:var(--c-primary-100);
+  color:var(--c-primary-700);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none}
+.list-item .li-main{flex:1;min-width:0}
+.list-item .li-t{font-size:13px;font-weight:600}
+.list-item .li-s{font-size:11px;color:var(--c-n-500)}
+.tabbar{display:flex;justify-content:space-around;padding:10px 0 14px;background:#fff;border-top:1px solid var(--c-n-200);flex:none}
+.tabbar .tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--c-n-400)}
+.tabbar .tab.active{color:var(--c-primary-600)}
+.tabbar .tab .ti{width:22px;height:22px;border-radius:7px;background:currentColor;opacity:.9}
+.showcase .notes{flex:1;min-width:240px}
+.showcase .notes li{margin-bottom:var(--sp-3);color:var(--c-n-600)}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--c-n-900);color:#fff;padding:10px 18px;border-radius:var(--r-full);
+  font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:.2s;z-index:100}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+footer{border-top:1px solid var(--c-n-200);padding:var(--sp-8) var(--sp-6);
+  text-align:center;color:var(--c-n-400);font-size:13px}
+
+@media (max-width:640px){
+  .swatch-row{grid-template-columns:repeat(2,1fr)}
+  .sem-grid{grid-template-columns:repeat(2,1fr)}
+  .hero{padding:var(--sp-8)}.hero h1{font-size:30px}
+  .t-display{font-size:34px}.t-h1{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}}
+</style>
+
+<div class="topbar">
+  <svg width="34" height="34" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F97316"/><stop offset="1" stop-color="#EF4444"/></linearGradient></defs>
+    <rect x="0" y="0" width="120" height="120" rx="30" fill="url(#tg)"/>
+    <path d="M32 90 V50 a14 14 0 0 1 28 0 v40 M60 50 a14 14 0 0 1 28 0 v40" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="90" cy="30" r="6" fill="#fff"/>
+  </svg>
+  <strong style="font-family:var(--font-display);font-size:16px">mob<span style="font-weight:400;color:var(--c-primary-600)">phone</span></strong>
+  <span class="title">Design System · v1.0</span>
+</div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div>
+      <h1>MOB PHONE Design System</h1>
+      <p>Tokens, tipografia e componentes para construir interfaces consistentes em todo o ecossistema mobile. Clique em qualquer cor para copiar o hex.</p>
+    </div>
+    <svg class="logo-badge" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="0" y="0" width="120" height="120" rx="30" fill="rgba(255,255,255,.18)"/>
+      <path d="M32 90 V50 a14 14 0 0 1 28 0 v40 M60 50 a14 14 0 0 1 28 0 v40" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="90" cy="30" r="6" fill="#fff"/>
+    </svg>
+  </div>
+
+  <!-- COLORS -->
+  <section id="cores">
+    <p class="eyebrow">Foundations</p>
+    <h2 class="sec-title">Cores</h2>
+    <p class="sec-desc">Escala primária orange para ações e marca, red como acento. Como a marca é quente, warning virou amarelo e danger virou rose — assim os estados de erro não se confundem com elementos de marca.</p>
+
+    <h3 class="t-h3" style="margin-bottom:var(--sp-4)">Primary · orange</h3>
+    <div class="swatch-row" id="primary-row" style="margin-bottom:var(--sp-8)"></div>
+
+    <h3 class="t-h3" style="margin-bottom:var(--sp-4)">Neutral · slate</h3>
+    <div class="swatch-row" id="neutral-row" style="margin-bottom:var(--sp-8)"></div>
+
+    <h3 class="t-h3" style="margin-bottom:var(--sp-4)">Semantic</h3>
+    <div class="sem-grid">
+      <div class="sem-card" style="background:var(--c-success-bg)"><div class="dot" style="background:var(--c-success)"></div><strong>Success</strong><span class="hex">#16A34A</span></div>
+      <div class="sem-card" style="background:var(--c-warning-bg)"><div class="dot" style="background:var(--c-warning)"></div><strong>Warning</strong><span class="hex">#CA8A04</span></div>
+      <div class="sem-card" style="background:var(--c-danger-bg)"><div class="dot" style="background:var(--c-danger)"></div><strong>Danger</strong><span class="hex">#E11D48</span></div>
+      <div class="sem-card" style="background:var(--c-info-bg)"><div class="dot" style="background:var(--c-info)"></div><strong>Info</strong><span class="hex">#2563EB</span></div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section id="tipografia">
+    <p class="eyebrow">Foundations</p>
+    <h2 class="sec-title">Tipografia</h2>
+    <p class="sec-desc"><strong>Poppins</strong> para títulos (personalidade), <strong>Inter</strong> para corpo e UI (legibilidade), <strong>JetBrains Mono</strong> para dados e código.</p>
+    <div>
+      <div class="type-row"><span class="t-display">Aa Mobphone</span><span class="spec">Poppins 700 · 48/53</span></div>
+      <div class="type-row"><span class="t-h1">Título de tela</span><span class="spec">Poppins 700 · 36</span></div>
+      <div class="type-row"><span class="t-h2">Seção</span><span class="spec">Poppins 600 · 28</span></div>
+      <div class="type-row"><span class="t-h3">Subseção</span><span class="spec">Poppins 600 · 22</span></div>
+      <div class="type-row"><span class="t-body">Texto de corpo padrão para leitura confortável em telas.</span><span class="spec">Inter 400 · 16</span></div>
+      <div class="type-row"><span class="t-sm">Texto secundário e auxiliar.</span><span class="spec">Inter 400 · 14</span></div>
+      <div class="type-row"><span class="t-overline">Overline / label</span><span class="spec">Mono 500 · 12 · +14%</span></div>
+    </div>
+  </section>
+
+  <!-- SPACING -->
+  <section id="espacamento">
+    <p class="eyebrow">Foundations</p>
+    <h2 class="sec-title">Espaçamento</h2>
+    <p class="sec-desc">Escala de base 4px. Use os tokens em vez de valores soltos para manter ritmo vertical e horizontal.</p>
+    <div class="scale-grid" id="spacing-grid"></div>
+  </section>
+
+  <!-- RADIUS + SHADOW -->
+  <section id="raio-sombra">
+    <p class="eyebrow">Foundations</p>
+    <h2 class="sec-title">Raio &amp; Elevação</h2>
+    <p class="sec-desc">Cantos arredondados progressivos e três níveis de sombra para hierarquia de profundidade.</p>
+    <h3 class="t-h3" style="margin-bottom:var(--sp-4)">Border radius</h3>
+    <div class="radius-grid" style="margin-bottom:var(--sp-8)">
+      <div class="radius-cell"><div class="radius-demo" style="border-radius:var(--r-sm)"></div><span class="mono" style="font-size:12px">sm · 6px</span></div>
+      <div class="radius-cell"><div class="radius-demo" style="border-radius:var(--r-md)"></div><span class="mono" style="font-size:12px">md · 10px</span></div>
+      <div class="radius-cell"><div class="radius-demo" style="border-radius:var(--r-lg)"></div><span class="mono" style="font-size:12px">lg · 16px</span></div>
+      <div class="radius-cell"><div class="radius-demo" style="border-radius:var(--r-xl)"></div><span class="mono" style="font-size:12px">xl · 24px</span></div>
+      <div class="radius-cell"><div class="radius-demo" style="border-radius:var(--r-full)"></div><span class="mono" style="font-size:12px">full · 999px</span></div>
+    </div>
+    <h3 class="t-h3" style="margin-bottom:var(--sp-4)">Sombras</h3>
+    <div class="shadow-grid">
+      <div class="shadow-cell"><div class="shadow-demo" style="box-shadow:var(--sh-sm)"></div><span class="mono" style="font-size:12px">sh-sm</span></div>
+      <div class="shadow-cell"><div class="shadow-demo" style="box-shadow:var(--sh-md)"></div><span class="mono" style="font-size:12px">sh-md</span></div>
+      <div class="shadow-cell"><div class="shadow-demo" style="box-shadow:var(--sh-lg)"></div><span class="mono" style="font-size:12px">sh-lg</span></div>
+    </div>
+  </section>
+
+  <!-- BUTTONS -->
+  <section id="botoes">
+    <p class="eyebrow">Components</p>
+    <h2 class="sec-title">Botões</h2>
+    <p class="sec-desc">Uma ação primária por tela. Secundário e ghost para ações de apoio; danger para ações destrutivas.</p>
+    <div class="card" style="margin-bottom:var(--sp-4)">
+      <div class="btn-row" style="margin-bottom:var(--sp-5)">
+        <button class="btn btn-primary">Ação primária</button>
+        <button class="btn btn-secondary">Secundária</button>
+        <button class="btn btn-ghost">Ghost</button>
+        <button class="btn btn-danger">Excluir</button>
+        <button class="btn btn-primary" disabled>Desabilitado</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm">Pequeno</button>
+        <button class="btn btn-primary">Médio</button>
+        <button class="btn btn-primary btn-lg">Grande</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORMS -->
+  <section id="formularios">
+    <p class="eyebrow">Components</p>
+    <h2 class="sec-title">Formulários</h2>
+    <p class="sec-desc">Campos com label sempre visível, foco com anel de acessibilidade e mensagens de erro objetivas.</p>
+    <div class="card">
+      <div class="field">
+        <label for="f1">Número de telefone</label>
+        <input class="input" id="f1" placeholder="(85) 90000-0000">
+        <div class="hint">Usaremos para verificação por SMS.</div>
+      </div>
+      <div class="field">
+        <label for="f2">E-mail</label>
+        <input class="input error" id="f2" value="hudson@" >
+        <div class="hint err">Endereço de e-mail incompleto.</div>
+      </div>
+      <div class="field" style="display:flex;align-items:center;gap:var(--sp-3)">
+        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+        <span class="t-sm" style="color:var(--c-n-700)">Receber notificações push</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEEDBACK -->
+  <section id="feedback">
+    <p class="eyebrow">Components</p>
+    <h2 class="sec-title">Feedback</h2>
+    <p class="sec-desc">Badges comunicam estado em linha; alerts comunicam resultado de uma ação com direção clara sobre o próximo passo.</p>
+    <div class="card" style="margin-bottom:var(--sp-4)">
+      <div class="btn-row" style="margin-bottom:var(--sp-5)">
+        <span class="badge badge-primary">Novo</span>
+        <span class="badge badge-success">Ativo</span>
+        <span class="badge badge-warning">Pendente</span>
+        <span class="badge badge-danger">Bloqueado</span>
+        <span class="badge badge-neutral">Rascunho</span>
+      </div>
+      <div class="alert alert-info"><span class="ic">i</span><div>Sincronização agendada para as 03:00. Nenhuma ação necessária.</div></div>
+      <div class="alert alert-success"><span class="ic">✓</span><div>Dispositivo conectado com sucesso.</div></div>
+      <div class="alert alert-warning"><span class="ic">!</span><div>Bateria em 15%. Conecte o carregador para continuar a sincronização.</div></div>
+      <div class="alert alert-danger" style="margin-bottom:0"><span class="ic">×</span><div>Falha ao conectar. Verifique o sinal e tente novamente.</div></div>
+    </div>
+  </section>
+
+  <!-- SIGNATURE: PHONE -->
+  <section id="showcase">
+    <p class="eyebrow">In context</p>
+    <h2 class="sec-title">Tokens em ação</h2>
+    <p class="sec-desc">Os mesmos tokens compostos em uma tela real do app — é assim que as peças se encaixam.</p>
+    <div class="showcase">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="app-head">
+            <div class="hello">Bom dia,</div>
+            <div class="name">Hudson</div>
+          </div>
+          <div class="app-body">
+            <div class="mini-card">
+              <div class="row"><span class="k">Dispositivos ativos</span><span class="badge badge-success">3 online</span></div>
+              <div class="v" style="margin-top:6px">4 aparelhos</div>
+            </div>
+            <div class="mini-card" style="margin-bottom:var(--sp-4)">
+              <div class="row"><span class="k">Sincronização</span><span class="v" style="font-size:14px">98%</span></div>
+              <div style="height:8px;background:var(--c-n-200);border-radius:var(--r-full);margin-top:8px;overflow:hidden">
+                <div style="width:98%;height:100%;background:var(--grad-brand)"></div>
+              </div>
+            </div>
+            <div class="t-overline" style="margin-bottom:var(--sp-2)">Recentes</div>
+            <div class="list-item"><div class="av">GS</div><div class="li-main"><div class="li-t">Galaxy S23</div><div class="li-s">Sincronizado há 2 min</div></div><span class="badge badge-neutral">85%</span></div>
+            <div class="list-item"><div class="av">IP</div><div class="li-main"><div class="li-t">iPhone 14</div><div class="li-s">Sincronizado há 8 min</div></div><span class="badge badge-warning">15%</span></div>
+            <div class="list-item" style="border-bottom:none"><div class="av">MT</div><div class="li-main"><div class="li-t">Moto G</div><div class="li-s">Offline</div></div><span class="badge badge-danger">—</span></div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:var(--sp-4)">Adicionar dispositivo</button>
+          </div>
+          <div class="tabbar">
+            <div class="tab active"><div class="ti"></div>Início</div>
+            <div class="tab"><div class="ti"></div>Aparelhos</div>
+            <div class="tab"><div class="ti"></div>Alertas</div>
+            <div class="tab"><div class="ti"></div>Perfil</div>
+          </div>
+        </div>
+      </div>
+      <ul class="notes">
+        <li><strong>Header</strong> usa o gradiente de marca — reservado para topos e ações primárias, nunca em blocos grandes de texto.</li>
+        <li><strong>Cards</strong> ficam em superfície branca sobre fundo <code>--c-n-50</code>, com <code>--sh-sm</code> e raio <code>--r-md</code>.</li>
+        <li><strong>Badges</strong> semânticos traduzem status de bateria/conexão sem depender só de cor (sempre com texto).</li>
+        <li><strong>Bottom tab bar</strong> com ícone + label; item ativo em <code>--c-primary-600</code>.</li>
+        <li>A ação primária de cada tela ocupa largura total no rodapé do conteúdo.</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<footer>MOB PHONE Design System · construído com tokens em CSS variables · troque a paleta editando o bloco <code>:root</code></footer>
+
+<div id="toast">Copiado!</div>
+
+<script>
+const primary=[['50','#FFF7ED'],['100','#FFEDD5'],['200','#FED7AA'],['300','#FDBA74'],['400','#FB923C'],['500','#F97316'],['600','#EA580C'],['700','#C2410C'],['800','#9A3412'],['900','#7C2D12']];
+const neutral=[['50','#F8FAFC'],['100','#F1F5F9'],['200','#E2E8F0'],['300','#CBD5E1'],['400','#94A3B8'],['500','#64748B'],['600','#475569'],['700','#334155'],['800','#1E293B'],['900','#0F172A']];
+const spacing=[['sp-1','4'],['sp-2','8'],['sp-3','12'],['sp-4','16'],['sp-5','20'],['sp-6','24'],['sp-8','32'],['sp-10','40'],['sp-12','48'],['sp-16','64']];
+
+function swatch(name,hex){
+  const b=document.createElement('button');b.className='swatch';
+  const light=parseInt(name)<=300;
+  b.innerHTML=`<div class="chip" style="background:${hex}"></div><div class="meta"><div class="name">${name}</div><div class="hex">${hex}</div></div>`;
+  b.onclick=()=>copy(hex);return b;
+}
+primary.forEach(([n,h])=>document.getElementById('primary-row').appendChild(swatch(n,h)));
+neutral.forEach(([n,h])=>document.getElementById('neutral-row').appendChild(swatch(n,h)));
+
+const sg=document.getElementById('spacing-grid');
+spacing.forEach(([tok,px])=>{
+  const d=document.createElement('div');d.className='scale-cell';
+  d.innerHTML=`<div class="bar" style="width:${px}px;margin-left:auto;margin-right:auto"></div><div class="lbl">${tok}<br>${px}px</div>`;
+  sg.appendChild(d);
+});
+
+let toastTimer;
+function copy(text){
+  navigator.clipboard?.writeText(text).catch(()=>{});
+  const t=document.getElementById('toast');t.textContent=text+' copiado';t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1400);
+}
+</script>

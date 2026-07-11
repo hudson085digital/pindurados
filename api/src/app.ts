@@ -6,6 +6,8 @@ import fastifyMultipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
 import { ZodError } from 'zod'
 import { env } from '@/env'
+import { BusinessRuleError } from '@/use-cases/errors/business-rule-error'
+import { ResourceNotFoundError } from '@/use-cases/errors/resource-not-found-error'
 import { UPLOADS_DIR, usingSupabaseStorage, comprovanteUrl } from '@/lib/uploads'
 import { usersRoutes } from '@/http/controllers/users/routes'
 import { customersRoutes } from '@/http/controllers/customers/routes'
@@ -14,6 +16,12 @@ import { installmentsRoutes } from '@/http/controllers/installments/routes'
 import { reportsRoutes } from '@/http/controllers/reports/routes'
 import { pixKeysRoutes } from '@/http/controllers/pix-keys/routes'
 import { publicRoutes } from '@/http/controllers/public/routes'
+import { optionsRoutes } from '@/http/controllers/options/routes'
+import { productsRoutes } from '@/http/controllers/products/routes'
+import { purchasesRoutes } from '@/http/controllers/purchases/routes'
+import { stockRoutes } from '@/http/controllers/stock/routes'
+import { catalogRoutes } from '@/http/controllers/catalog/routes'
+import { walletRoutes } from '@/http/controllers/wallet/routes'
 
 export const app = fastify()
 
@@ -64,6 +72,12 @@ app.register(salesRoutes)
 app.register(installmentsRoutes)
 app.register(reportsRoutes)
 app.register(pixKeysRoutes)
+app.register(optionsRoutes)
+app.register(productsRoutes)
+app.register(purchasesRoutes)
+app.register(stockRoutes)
+app.register(catalogRoutes)
+app.register(walletRoutes)
 
 // Tratamento global de erros
 app.setErrorHandler((error, _request, reply) => {
@@ -71,6 +85,14 @@ app.setErrorHandler((error, _request, reply) => {
     return reply
       .status(400)
       .send({ message: 'Dados inválidos.', issues: error.format() })
+  }
+
+  if (error instanceof BusinessRuleError) {
+    return reply.status(400).send({ message: error.message })
+  }
+
+  if (error instanceof ResourceNotFoundError) {
+    return reply.status(404).send({ message: error.message })
   }
 
   // Loga sempre (inclusive em produção) para aparecer nos logs do host.

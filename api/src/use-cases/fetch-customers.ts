@@ -13,6 +13,11 @@ export interface CustomerWithBalance {
   note: string | null
   salesCount: number
   balanceInCents: number
+  // 025 — campos extras (para busca por CPF/tag e badge de tipo)
+  kind: string | null
+  cpfCnpj: string | null
+  instagram: string | null
+  tags: string[]
 }
 
 interface FetchCustomersUseCaseResponse {
@@ -43,6 +48,10 @@ export class FetchCustomersUseCase {
           note: customer.note,
           salesCount: sales.length,
           balanceInCents,
+          kind: customer.kind,
+          cpfCnpj: customer.cpfCnpj,
+          instagram: customer.instagram,
+          tags: customer.tags,
         }
       }),
     )

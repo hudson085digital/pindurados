@@ -1,0 +1,7 @@
+Hoje eu dono da loja compro mercadoria em promoções como Mercado Livre, Shopee, então compro iphones, jbls, tvs, tables.
+
+Ao comprar eu registro o dia, número do pedido, conta, CIA (Mercado Livre, Shopee e etc), Formato (Normal, Promoções, Milhas, Cashback), Produto (nome do produto), quantidade, valor por unidade, valor total, forma de pagamento, Banco/Cartão, Acumulo (Quantidade de mIlhas por real), frete, valor pago (com frete), milhas obtidas/cashback obtida, valor final por produto, valor total final, valor total final (com nubank) (nubank da 4,5% de desconto ao comprar em 12x e adiantar as 11 parcelas), data de previsão de recebimento produto, data de recebimento e produto, status do recebimento prodtuo (recebido ou não recebido), data de previsão de milhas/cashback (quando for nesse formato), data de recebimento das milhas/cashback, se foi recebido ou não, dados do produto a depender (DANFE, Serial Number, IMEI1, IMEI 2 (se for telefone)), observação shopee pede palavra chave entãoa comprar eu já adiciono.
+
+Também adicionei a planilha chamada Compras de Produtos
+
+Na parte de venda de produtos preciso saber quem é o comprador, nome e número, se é cliente final ou revenda, forma de pagamento (pix, cartão, dinheiro, duas ou mais formas de pagamento) para revenda temos a opção de casada que é quando um cliente de revenda compra para pagar depois e pede o prazo que é variado e por fim o produto pois preciso eventualmente dar a nota fiscal ao comprador.

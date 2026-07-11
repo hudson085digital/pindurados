@@ -1,22 +1,17 @@
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Copy, MessageCircle } from 'lucide-react'
+import { Copy, MessageCircle, Check, Undo2 } from 'lucide-react'
 import { getPublicSale } from '@/api/public'
-import { ReceiptMethod } from '@/api/types'
+import { RECEIPT_METHOD_LABELS } from '@pindurados/core'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Logo } from '@/components/ui/logo'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const METHOD_LABEL: Record<ReceiptMethod, string> = {
-  PIX: 'Pix',
-  CARD: 'Cartão',
-  CREDIT: 'Crédito',
-  DEBIT: 'Débito',
-  CASH: 'Dinheiro',
-}
+// Rótulos vêm da fonte única do core.
+const METHOD_LABEL = RECEIPT_METHOD_LABELS
 
 const STATUS_LABEL: Record<string, string> = {
   PAID: 'paga',
@@ -66,6 +61,9 @@ export function PublicSale() {
   }
 
   const visibleReceipts = sale.receipts.filter((r) => r.amountInCents !== 0)
+  const paidPct = sale.totalInCents > 0
+    ? Math.min(100, Math.round((sale.totalPaidInCents / sale.totalInCents) * 100))
+    : 0
 
   async function copyPix() {
     if (!sale?.pix) return
@@ -94,20 +92,38 @@ export function PublicSale() {
             <Row label="Entrada" value={formatCurrency(sale.downPaymentInCents)} />
           )}
           <Row label="Já pago" value={formatCurrency(sale.totalPaidInCents)} />
+          <div className="pt-1">
+            <div
+              role="progressbar"
+              aria-valuenow={paidPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Percentual pago"
+              className="h-2 w-full overflow-hidden rounded-full bg-secondary"
+            >
+              <div
+                className="h-full rounded-full bg-brand-gradient transition-[width] duration-500 ease-out"
+                style={{ width: `${paidPct}%` }}
+              />
+            </div>
+            <p className="mt-1 text-right text-xs text-muted-foreground tabular-nums">
+              {paidPct}% pago
+            </p>
+          </div>
           <div className="border-t pt-2">
             <div className="flex items-center justify-between">
               <span className="font-semibold">
                 {sale.settled ? 'Status' : 'Saldo devedor'}
               </span>
               {sale.settled ? (
-                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-success">
                   Quitada
                 </span>
               ) : (
                 <span
                   className={cn(
                     'text-lg font-bold tabular-nums',
-                    sale.balanceInCents > 0 ? 'text-destructive' : 'text-primary',
+                    sale.balanceInCents > 0 ? 'text-destructive' : 'text-success',
                   )}
                 >
                   {formatCurrency(sale.balanceInCents)}
@@ -118,11 +134,34 @@ export function PublicSale() {
         </CardContent>
       </Card>
 
+      {/* 025 — Itens da compra com garantia */}
+      {(sale.items?.length ?? 0) > 0 && (
+        <Card>
+          <CardContent className="space-y-1 p-4">
+            <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Itens da compra
+            </p>
+            <ul className="divide-y divide-border/60">
+              {sale.items!.map((item, i) => (
+                <li key={i} className="flex items-center justify-between gap-2 py-2 text-sm first:pt-0 last:pb-0">
+                  <span className="min-w-0 truncate font-medium">{item.name}</span>
+                  {item.warrantyUntil && (
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      garantia até {formatDate(item.warrantyUntil)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Como pagar (PIX) — só se houver chave e ainda houver saldo */}
       {sale.pix && !sale.settled && sale.balanceInCents > 0 && (
         <Card>
           <CardContent className="space-y-2 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Como pagar
             </p>
             <p className="text-sm">
@@ -142,7 +181,7 @@ export function PublicSale() {
       )}
 
       {/* Parcelas */}
-      <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="pt-1 font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
         Parcelas
       </p>
       <div className="space-y-2">
@@ -175,7 +214,7 @@ export function PublicSale() {
       {/* Recebimentos */}
       {visibleReceipts.length > 0 && (
         <>
-          <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="pt-1 font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             Pagamentos registrados
           </p>
           <Card>
@@ -183,10 +222,15 @@ export function PublicSale() {
               {visibleReceipts.map((r, idx) => {
                 const isReversal = r.amountInCents < 0
                 return (
-                  <div key={idx} className="text-xs">
-                    <span className={cn(isReversal && 'text-muted-foreground')}>
-                      {isReversal ? '↩ Estorno ' : '✓ '}
-                      <strong>{formatCurrency(Math.abs(r.amountInCents))}</strong>
+                  <div key={idx} className="flex items-start gap-1.5 py-0.5 text-xs">
+                    {isReversal ? (
+                      <Undo2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="estorno" />
+                    ) : (
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-label="pago" />
+                    )}
+                    <span className={cn('min-w-0', isReversal && 'text-muted-foreground')}>
+                      {isReversal && 'Estorno '}
+                      <strong className="tabular-nums">{formatCurrency(Math.abs(r.amountInCents))}</strong>
                       {r.methods.length > 0 &&
                         ` · ${r.methods.map((m) => METHOD_LABEL[m]).join(' + ')}`}
                       {' · '}
@@ -236,7 +280,7 @@ export function PublicSale() {
       )}
 
       <p className="pb-6 pt-2 text-center text-[11px] text-muted-foreground">
-        Página somente leitura · Pindurados
+        Página somente leitura · mobphone
       </p>
     </div>
   )
@@ -269,7 +313,7 @@ function Tag({
   const tones = {
     gray: 'bg-secondary text-muted-foreground',
     red: 'bg-destructive/10 text-destructive',
-    green: 'bg-primary/10 text-primary',
+    green: 'bg-success/10 text-success',
   }
   return (
     <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', tones[tone])}>

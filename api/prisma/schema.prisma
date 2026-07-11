@@ -31,6 +31,16 @@ model User {
   customers Customer[]
   pixKeys   PixKey[]
 
+  // 025 — loja de eletrônicos
+  products      Product[]
+  productTypes  ProductType[]
+  productModels ProductModel[]
+  typeFields    ProductTypeField[]
+  purchases     Purchase[]
+  stockUnits    StockUnit[]
+  options       UserOption[]
+  walletEntries WalletEntry[]
+
   @@map("users")
 }
 
@@ -67,6 +77,20 @@ model Customer {
   autoReminder Boolean  @default(false) @map("auto_reminder")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  // 025 — loja de eletrônicos: dados extras do comprador, todos opcionais.
+  // kind é rótulo livre (UserOption CUSTOMER_KIND) — ex.: "Cliente final", "Revenda".
+  kind              String?       @map("kind")
+  cpfCnpj           String?       @map("cpf_cnpj")
+  instagram         String?
+  tags              String[]      @default([])
+  addressZip        String?       @map("address_zip")
+  addressStreet     String?       @map("address_street")
+  addressNumber     String?       @map("address_number")
+  addressDistrict   String?       @map("address_district")
+  addressCity       String?       @map("address_city")
+  addressState      String?       @map("address_state")
+  addressComplement String?       @map("address_complement")
+
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -95,12 +119,24 @@ model Sale {
   saleDate            DateTime @map("sale_date")
   createdAt           DateTime @default(now()) @map("created_at")
 
+  // 025 — loja de eletrônicos: classificação opcional da venda. Rótulos livres,
+  // configuráveis via UserOption (design aberto: sem enum para listas do dono).
+  origin       String?
+  deliveryType String? @map("delivery_type")
+  // Tipo de venda (À vista, Cartão, Promissória…) — label de UserOption SALE_KIND;
+  // o comportamento (quitação imediata × parcelas) vem do meta da opção.
+  saleKind     String? @map("sale_kind")
+  // Tipo de cliente NESTA venda (Varejo/Revenda) — label de CUSTOMER_KIND.
+  customerKind String? @map("customer_kind")
+
   customerId String   @map("customer_id")
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   installments Installment[]
   receipts     Receipt[]
   shareLink    SaleShareLink?
+  items        SaleItem[]
+  attachments  SaleAttachment[]
 
   @@map("sales")
 }
@@ -144,6 +180,9 @@ enum ReceiptMethod {
   CARD
   CREDIT
   DEBIT
+  BOLETO
+  TRANSFER
+  OTHER
 }
 
 // Recebimento: evento imutável de entrada de dinheiro num crediário (Sale).
@@ -183,4 +222,267 @@ model ReceiptAttachment {
   receipt   Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
 
   @@map("receipt_attachments")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 025 — Loja de eletrônicos: compras em marketplace → estoque de unidades →
+// itens de venda. Tudo aditivo; o núcleo de fiado acima não muda.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PurchaseFormat {
+  NORMAL
+  PROMO
+  MILES
+  CASHBACK
+}
+
+enum StockUnitStatus {
+  AWAITING
+  AVAILABLE
+  SOLD
+}
+
+enum UserOptionKind {
+  MARKETPLACE
+  SALE_ORIGIN
+  SALE_KIND
+  PAYMENT_METHOD
+  DELIVERY_TYPE
+  PURCHASE_FORMAT
+  PRODUCT_FIELD
+  PRODUCT_TYPE
+  CUSTOMER_KIND
+  BRAND
+  COLOR
+  CATEGORY
+  SUBCATEGORY
+}
+
+// Tipo de produto (entidade cadastrável): Celular, Caixa de Som, Acessório,
+// Ar-condicionado… Dono dos modelos e dos meta fields específicos do tipo.
+model ProductType {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  models   ProductModel[]
+  fields   ProductTypeField[]
+  products Product[]
+
+  @@unique([userId, name])
+  @@map("product_types")
+}
+
+// Modelo (entidade cadastrável, associada a um tipo): "Boombox 4" → Caixa de Som.
+model ProductModel {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productTypeId String      @map("product_type_id")
+  productType   ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+
+  products Product[]
+
+  @@unique([userId, productTypeId, name])
+  @@map("product_models")
+}
+
+// Meta field pertencente a um tipo: Celular → IMEI, IMEI 2, GB, Saúde da
+// bateria, Ciclo da bateria… Valores ficam no `meta` (JSONB) do produto/unidade.
+model ProductTypeField {
+  id        String   @id @default(uuid())
+  label     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productTypeId String      @map("product_type_id")
+  productType   ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([productTypeId, label])
+  @@map("product_type_fields")
+}
+
+// Catálogo: o produto vendável (ex.: "JBL Boombox 4 Branca" = marca + modelo +
+// cor). Campos universais como colunas; os específicos do tipo vão no `meta`.
+model Product {
+  id                    String      @id @default(uuid())
+  name                  String
+  brand                 String?
+  color                 String?
+  category              String?
+  subcategory           String?
+  sku                   String?
+  barcode               String?
+  suggestedPriceInCents Int?        @map("suggested_price_in_cents")
+  warrantyDays          Int?        @map("warranty_days")
+  minQuantity           Int?        @map("min_quantity")
+  note                  String?
+  // Valores dos meta fields do tipo (estilo post_meta, em JSONB) — só o preenchido.
+  meta                  Json        @default("{}")
+  createdAt             DateTime    @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productTypeId String?      @map("product_type_id")
+  productType   ProductType? @relation(fields: [productTypeId], references: [id], onDelete: SetNull)
+
+  productModelId String?       @map("product_model_id")
+  productModel   ProductModel? @relation(fields: [productModelId], references: [id], onDelete: SetNull)
+
+  purchases Purchase[]
+  units     StockUnit[]
+
+  @@map("products")
+}
+
+// Compra em marketplace (1 linha da planilha). Custo efetivo é derivado:
+// pago com frete − valor esperado/real de milhas/cashback (ver purchase-cost).
+model Purchase {
+  id                    String         @id @default(uuid())
+  date                  DateTime
+  orderNumber           String?        @map("order_number")
+  account               String?
+  marketplace           String?
+  format                PurchaseFormat @default(NORMAL)
+  // Rótulo exibido do formato (configurável); `format` é o modo de CÁLCULO.
+  formatLabel           String?        @map("format_label")
+  quantity              Int            @default(1)
+  unitValueInCents      Int            @map("unit_value_in_cents")
+  freightInCents        Int            @default(0) @map("freight_in_cents")
+  paymentMethod         String?        @map("payment_method")
+  bankCard              String?        @map("bank_card")
+  accrualPerReal        Float?         @map("accrual_per_real")
+  cpmInCents            Int?           @map("cpm_in_cents")
+  cashbackPercent       Float?         @map("cashback_percent")
+  expectedCreditInCents Int            @default(0) @map("expected_credit_in_cents")
+  actualCreditInCents   Int?           @map("actual_credit_in_cents")
+  nubankAdvance         Boolean        @default(false) @map("nubank_advance")
+  nubankDiscountPercent Float          @default(4.5) @map("nubank_discount_percent")
+  productExpectedAt     DateTime?      @map("product_expected_at")
+  productReceivedAt     DateTime?      @map("product_received_at")
+  creditExpectedAt      DateTime?      @map("credit_expected_at")
+  creditReceivedAt      DateTime?      @map("credit_received_at")
+  note                  String?
+  canceled              Boolean        @default(false)
+  createdAt             DateTime       @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  units         StockUnit[]
+  walletEntries WalletEntry[]
+
+  @@map("purchases")
+}
+
+// Peça física. AWAITING → AVAILABLE (recebimento) → SOLD (venda).
+model StockUnit {
+  id               String          @id @default(uuid())
+  status           StockUnitStatus @default(AWAITING)
+  finalCostInCents Int             @map("final_cost_in_cents")
+  serialNumber     String?         @map("serial_number")
+  imei1            String?
+  imei2            String?
+  danfe            String?
+  note             String?
+  // Atributos livres da unidade (estilo post_meta, em JSONB).
+  meta             Json            @default("{}")
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  purchaseId String   @map("purchase_id")
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  saleItem SaleItem?
+
+  @@map("stock_units")
+}
+
+// Foto/anexo da VENDA (025): etiqueta do marketplace, foto do nº de série,
+// comprovante de entrega (motoqueiro/Uber)… `kind` é rótulo livre.
+model SaleAttachment {
+  id        String   @id @default(uuid())
+  kind      String?
+  path      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  saleId String @map("sale_id")
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("sale_attachments")
+}
+
+// Unidade vendida numa venda (o plug no fiado). Snapshot imutável do momento.
+model SaleItem {
+  id                  String    @id @default(uuid())
+  nameSnapshot        String    @map("name_snapshot")
+  priceInCents        Int       @map("price_in_cents")
+  discountInCents     Int       @default(0) @map("discount_in_cents")
+  costSnapshotInCents Int       @map("cost_snapshot_in_cents")
+  warrantyDays        Int?      @map("warranty_days")
+  warrantyUntil       DateTime? @map("warranty_until")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  saleId String @map("sale_id")
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  unitId String    @unique @map("unit_id")
+  unit   StockUnit @relation(fields: [unitId], references: [id], onDelete: Restrict)
+
+  @@map("sale_items")
+}
+
+// Carteira de cashback (025): o cashback NÃO abate o custo da compra — quando
+// credita, vira saldo aqui (positivo). Usar em compra ou sacar = lançamento
+// negativo. Saldo = soma dos lançamentos.
+model WalletEntry {
+  id            String   @id @default(uuid())
+  amountInCents Int      @map("amount_in_cents")
+  kind          String
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  purchaseId String?   @map("purchase_id")
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  @@map("wallet_entries")
+}
+
+// Listas configuráveis (CIA de compra, origem da venda). Label vira string nos
+// registros — apagar uma opção não afeta o passado.
+model UserOption {
+  id        String         @id @default(uuid())
+  kind      UserOptionKind
+  label     String
+  // Metadado opcional da opção — ex.: modo de cálculo de um formato de compra
+  // customizado ("Livelo Pontos" → meta MILES).
+  meta      String?
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, label])
+  @@map("user_options")
 }

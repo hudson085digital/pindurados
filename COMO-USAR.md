@@ -46,10 +46,18 @@ Para desligar: `Ctrl + C` em cada terminal. O banco continua no Docker
 (`docker compose down` em `api/` para parar o banco).
 
 ## O que dá pra fazer
-1. **Resumo** — total a receber, recebido, parcelas vencidas.
-2. **Devedores** — cadastrar quem deve; clicar pra ver vendas e parcelas.
-3. **Nova venda** — automática (juros define parcelas) ou manual; com prévia do cálculo.
+1. **Resumo** — total a receber, recebido, parcelas vencidas + investimento do mês, lucro/margem por mês e pendências da loja.
+2. **Devedores** — cadastrar quem deve (com CPF, endereço, Instagram, tags e tipo cliente final/revenda — tudo opcional); clicar pra ver vendas e parcelas.
+3. **Nova venda** — automática (juros define parcelas) ou manual; com prévia do cálculo. Pode incluir **itens do estoque** (unidade por IMEI/SN) — aí o lucro, a margem e o mark-up aparecem na hora, e a garantia entra na página pública.
 4. **Parcelas** — registrar pagamento (total ou parcial) com comprovante; marcar/tirar atraso com motivo.
+5. **Loja → Compras** — registrar compras de marketplace com formato Normal/Promoção/**Milhas**/**Cashback** (o custo final desconta o valor das milhas/cashback, com opção de antecipação Nubank), acompanhar recebimento e crédito, e **importar a planilha** "Compras de Produtos" inteira.
+6. **Loja → Estoque** — unidades físicas com SN/IMEI/DANFE, custo efetivo e status (a caminho → disponível → vendida); busca por IMEI.
+7. **Loja → Produtos** — catálogo com preço de venda, garantia, estoque mínimo e campos extras configuráveis.
+8. **Pendências** — produtos não recebidos, milhas/cashback não creditados e pagamentos pendentes de vendas a prazo (casada), atrasados no topo.
+
+> Listas como CIA, formato de compra, forma de pagamento, entrega, origem da venda,
+> tipo de produto/cliente e campos extras são **configuráveis** (entidades, não
+> enums) — via API `/options`; tela de gestão é um próximo passo.
 
 ## Onde ficam os dados
 - **Banco:** dentro do Docker (volume `pindurados-pg-data`). No futuro, migra pro Supabase.

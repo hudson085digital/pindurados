@@ -71,6 +71,18 @@ export function serializeSale(sale: SaleWithDetails) {
       (r.attachments?.length ?? 0) === 0,
   ).length
 
+  // 025 — loja: margem/mark-up derivados quando há custo. Receita = entrada +
+  // total acordado (mesma base do lucro). Nada muda para vendas sem custo.
+  const revenueInCents = sale.downPaymentInCents + sale.totalInCents
+  const marginPercent =
+    sale.productCostInCents > 0 && revenueInCents > 0
+      ? Math.round((profitInCents / revenueInCents) * 1000) / 10
+      : null
+  const markupPercent =
+    sale.productCostInCents > 0
+      ? Math.round((profitInCents / sale.productCostInCents) * 1000) / 10
+      : null
+
   return {
     ...sale,
     installments,
@@ -79,6 +91,8 @@ export function serializeSale(sale: SaleWithDetails) {
     totalPaidInCents,
     balanceInCents,
     profitInCents,
+    marginPercent,
+    markupPercent,
     receiptsPendingProof,
     settled: balanceInCents <= 0 && totalDueInCents > 0,
   }

@@ -11,6 +11,8 @@ const include = {
     orderBy: { createdAt: 'asc' },
     include: { attachments: true },
   },
+  items: true,
+  attachments: true,
 } satisfies Prisma.SaleInclude
 
 export class PrismaSalesRepository implements SalesRepository {

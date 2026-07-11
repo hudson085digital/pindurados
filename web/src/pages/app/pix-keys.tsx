@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Star, Trash2, KeyRound } from 'lucide-react'
+import { Star, Trash2, KeyRound, Plus } from 'lucide-react'
 import {
   fetchPixKeys,
   createPixKey,
@@ -19,6 +19,8 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PhoneInput } from '@/components/ui/phone-input'
+import { PageHeader } from '@/components/ui/page-header'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
   Dialog,
   DialogContent,
@@ -36,6 +38,7 @@ const TYPES: { value: PixKeyType; label: string }[] = [
 ]
 
 export function PixKeys() {
+  const confirm = useConfirm()
   const [open, setOpen] = useState(false)
   const [type, setType] = useState<PixKeyType>('RANDOM')
   const [key, setKey] = useState('')
@@ -71,7 +74,13 @@ export function PixKeys() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Excluir esta chave Pix?')) return
+    const ok = await confirm({
+      title: 'Excluir esta chave Pix?',
+      description: 'Ela deixa de aparecer na página pública das vendas.',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    })
+    if (!ok) return
     await remove(id)
     invalidate()
   }
@@ -83,16 +92,21 @@ export function PixKeys() {
 
   return (
     <div className="space-y-3">
+      <PageHeader title="Pix e contato" />
+
       <ContactCard />
 
-      <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Chaves Pix
-      </p>
-
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button className="w-full">+ Nova chave Pix</Button>
-        </DialogTrigger>
+        <div className="flex items-center justify-between pt-1">
+          <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Chaves Pix
+          </p>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Plus className="h-4 w-4" /> Nova chave
+            </Button>
+          </DialogTrigger>
+        </div>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nova chave Pix</DialogTitle>
@@ -106,10 +120,10 @@ export function PixKeys() {
                   type="button"
                   onClick={() => setType(t.value)}
                   className={cn(
-                    'rounded-md border p-2 text-xs font-medium',
+                    'min-h-[40px] rounded-md border p-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
                     type === t.value
                       ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-input bg-card text-muted-foreground',
+                      : 'border-input bg-card text-muted-foreground hover:border-border hover:text-foreground',
                   )}
                 >
                   {t.label}
@@ -118,18 +132,18 @@ export function PixKeys() {
             </div>
           </div>
           <div>
-            <Label>Chave *</Label>
-            <Input value={key} onChange={(e) => setKey(e.target.value)} placeholder="Valor da chave" />
+            <Label htmlFor="pix-key">Chave *</Label>
+            <Input id="pix-key" value={key} onChange={(e) => setKey(e.target.value)} placeholder="Valor da chave" />
           </div>
           <div>
-            <Label>Banco *</Label>
-            <Input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Ex.: Nubank" />
+            <Label htmlFor="pix-bank">Banco *</Label>
+            <Input id="pix-bank" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Ex.: Nubank" />
           </div>
           <div>
-            <Label>Titular *</Label>
-            <Input value={holderName} onChange={(e) => setHolderName(e.target.value)} placeholder="Nome do titular" />
+            <Label htmlFor="pix-holder">Titular *</Label>
+            <Input id="pix-holder" value={holderName} onChange={(e) => setHolderName(e.target.value)} placeholder="Nome do titular" />
           </div>
-          <Button className="w-full" onClick={handleCreate} disabled={isPending}>
+          <Button className="w-full" onClick={handleCreate} loading={isPending}>
             Salvar chave
           </Button>
         </DialogContent>
@@ -174,11 +188,11 @@ export function PixKeys() {
             </div>
             <div className="flex shrink-0 items-center gap-1">
               {!k.isDefault && (
-                <Button size="icon" variant="ghost" onClick={() => handleDefault(k.id)} title="Tornar padrão">
+                <Button size="icon" variant="ghost" onClick={() => handleDefault(k.id)} title="Tornar padrão" aria-label="Tornar padrão">
                   <Star className="h-4 w-4" />
                 </Button>
               )}
-              <Button size="icon" variant="ghost" onClick={() => handleDelete(k.id)} title="Excluir">
+              <Button size="icon" variant="ghost" className="hover:bg-destructive/10" onClick={() => handleDelete(k.id)} title="Excluir" aria-label="Excluir chave">
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
@@ -217,12 +231,13 @@ function ContactCard() {
   return (
     <Card>
       <CardContent className="space-y-2 p-4">
-        <Label>Seu WhatsApp (para o devedor falar com você)</Label>
+        <Label htmlFor="contact-phone">Seu WhatsApp (para o devedor falar com você)</Label>
         <p className="text-xs text-muted-foreground">
           Aparece como botão na página pública da venda. Deixe em branco para ocultar.
         </p>
         <div className="flex gap-2">
           <PhoneInput
+            id="contact-phone"
             value={phone}
             onChangeValue={(v) => {
               setPhone(v)
@@ -231,7 +246,7 @@ function ContactCard() {
             placeholder="(XX) XXXXX-XXXX"
             className="flex-1"
           />
-          <Button onClick={handleSave} disabled={isPending || !dirty}>
+          <Button onClick={handleSave} loading={isPending} disabled={!dirty}>
             Salvar
           </Button>
         </div>
