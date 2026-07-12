@@ -1,8 +1,10 @@
 # Monorepo Pindurados.
 # packages/core (@pindurados/core) é a fonte única da matemática de dinheiro,
 # formatação e tipos, consumida por api/, web/ e (em breve) mobile/.
-# Nesta fase, api/ e web/ consomem o core via alias de tsconfig (sem reinstalar);
-# o app mobile, ao ser criado, entra como membro do workspace.
+# api/ e web/ consomem o core via alias de tsconfig e ficam FORA do workspace
+# de propósito (React 18 no web × React 19 no mobile conflitam nos @types se
+# compartilharem o hoist). Cada um tem seu pnpm-lock.yaml; nos builds de CI
+# (Render/Vercel) o install usa --ignore-workspace.
 packages:
   - 'packages/*'
   - 'mobile'

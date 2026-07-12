@@ -8,12 +8,15 @@ services:
     rootDir: api
     plan: free
     # migrate roda no build (preDeployCommand é recurso de plano pago no Render).
-    buildCommand: pnpm install && pnpm prisma:generate && pnpm exec prisma migrate deploy && pnpm build
+    # --ignore-workspace: a api é standalone (lockfile próprio), fora do workspace pnpm da raiz.
+    buildCommand: pnpm install --ignore-workspace && pnpm prisma:generate && pnpm exec prisma migrate deploy && pnpm build
     startCommand: pnpm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: '20'
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
