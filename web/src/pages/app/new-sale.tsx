@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { OptionSelect } from '@/components/ui/option-select'
 import { PageHeader } from '@/components/ui/page-header'
 import { DatePicker } from '@/components/ui/date-picker'
 import {
@@ -30,6 +31,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+
+// Modos base de um tipo de venda customizado (meta da UserOption): quitada na
+// hora (à vista) ou parcelada (promissória).
+const SALE_KIND_MODES = [
+  { value: 'INSTALLMENTS', label: 'Promissória (parcelada)' },
+  { value: 'IMMEDIATE', label: 'À vista (quitada na hora)' },
+]
 
 // Modo de CÁLCULO do juros (só para Promissória).
 const MODES: { value: SaleType; label: string; hint: string }[] = [
@@ -56,18 +64,6 @@ export function NewSale() {
   const { data: saleKinds } = useQuery({
     queryKey: ['options', 'SALE_KIND'],
     queryFn: () => fetchOptions('SALE_KIND'),
-  })
-  const { data: customerKinds } = useQuery({
-    queryKey: ['options', 'CUSTOMER_KIND'],
-    queryFn: () => fetchOptions('CUSTOMER_KIND'),
-  })
-  const { data: originOptions } = useQuery({
-    queryKey: ['options', 'SALE_ORIGIN'],
-    queryFn: () => fetchOptions('SALE_ORIGIN'),
-  })
-  const { data: deliveryOptions } = useQuery({
-    queryKey: ['options', 'DELIVERY_TYPE'],
-    queryFn: () => fetchOptions('DELIVERY_TYPE'),
   })
   const { data: stock } = useQuery({
     queryKey: ['stock-units', 'AVAILABLE'],
@@ -431,35 +427,30 @@ export function NewSale() {
           </div>
           <div>
             <Label htmlFor="sale-kind">Tipo de venda</Label>
-            <Select
+            <OptionSelect
               id="sale-kind"
+              kind="SALE_KIND"
               value={saleKind?.id ?? ''}
-              onChange={(e) => {
-                setSaleKindId(e.target.value)
+              onChange={(v) => {
+                setSaleKindId(v)
                 setMethods([])
               }}
-            >
-              {(saleKinds ?? []).map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.label}
-                </option>
-              ))}
-            </Select>
+              placeholder="Tipo de venda"
+              valueKey="id"
+              emptyLabel={null}
+              metaChoices={SALE_KIND_MODES}
+            />
           </div>
           <div>
             <Label htmlFor="sale-customer-kind">Tipo de cliente</Label>
-            <Select
+            <OptionSelect
               id="sale-customer-kind"
+              kind="CUSTOMER_KIND"
               value={customerKind}
-              onChange={(e) => setCustomerKind(e.target.value)}
-            >
-              <option value="">—</option>
-              {(customerKinds ?? []).map((k) => (
-                <option key={k.id} value={k.label}>
-                  {k.label}
-                </option>
-              ))}
-            </Select>
+              onChange={setCustomerKind}
+              placeholder="Tipo de cliente"
+              emptyLabel="—"
+            />
           </div>
         </div>
 
@@ -584,21 +575,25 @@ export function NewSale() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
             <Label htmlFor="sale-origin">Origem da venda</Label>
-            <Select id="sale-origin" value={origin} onChange={(e) => setOrigin(e.target.value)}>
-              <option value="">Opcional…</option>
-              {(originOptions ?? []).map((o) => (
-                <option key={o.id} value={o.label}>{o.label}</option>
-              ))}
-            </Select>
+            <OptionSelect
+              id="sale-origin"
+              kind="SALE_ORIGIN"
+              value={origin}
+              onChange={setOrigin}
+              placeholder="Origem"
+              emptyLabel="Opcional…"
+            />
           </div>
           <div>
             <Label htmlFor="sale-delivery">Entrega</Label>
-            <Select id="sale-delivery" value={deliveryType} onChange={(e) => setDeliveryType(e.target.value)}>
-              <option value="">Opcional…</option>
-              {(deliveryOptions ?? []).map((o) => (
-                <option key={o.id} value={o.label}>{o.label}</option>
-              ))}
-            </Select>
+            <OptionSelect
+              id="sale-delivery"
+              kind="DELIVERY_TYPE"
+              value={deliveryType}
+              onChange={setDeliveryType}
+              placeholder="Entrega"
+              emptyLabel="Opcional…"
+            />
           </div>
           <div>
             <Label htmlFor="sale-date">Data da venda</Label>
@@ -1044,11 +1039,6 @@ function NewCustomerDialog({
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [kind, setKind] = useState('')
-  const { data: kinds } = useQuery({
-    queryKey: ['options', 'CUSTOMER_KIND'],
-    queryFn: () => fetchOptions('CUSTOMER_KIND'),
-    enabled: open,
-  })
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: () =>
@@ -1087,12 +1077,14 @@ function NewCustomerDialog({
           </div>
           <div>
             <Label htmlFor="qc-kind">Tipo</Label>
-            <Select id="qc-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="">—</option>
-              {(kinds ?? []).map((k) => (
-                <option key={k.id} value={k.label}>{k.label}</option>
-              ))}
-            </Select>
+            <OptionSelect
+              id="qc-kind"
+              kind="CUSTOMER_KIND"
+              value={kind}
+              onChange={setKind}
+              placeholder="Tipo de cliente"
+              emptyLabel="—"
+            />
           </div>
         </div>
         <p className="text-xs text-muted-foreground">

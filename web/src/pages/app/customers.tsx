@@ -7,7 +7,6 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { Users, ChevronRight, ChevronDown, Plus, Search } from 'lucide-react'
 import { fetchCustomers, createCustomer } from '@/api/customers'
-import { fetchOptions } from '@/api/options'
 import { formatCurrency, cn } from '@/lib/utils'
 import { queryClient } from '@/lib/react-query'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,7 +18,7 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { PageHeader } from '@/components/ui/page-header'
-import { Select } from '@/components/ui/select'
+import { OptionSelect } from '@/components/ui/option-select'
 import {
   Dialog,
   DialogContent,
@@ -50,10 +49,6 @@ export function Customers() {
   const [open, setOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const { data: kindOptions } = useQuery({
-    queryKey: ['options', 'CUSTOMER_KIND'],
-    queryFn: () => fetchOptions('CUSTOMER_KIND'),
-  })
   const { data: customers, isLoading } = useQuery({
     queryKey: ['customers'],
     queryFn: fetchCustomers,
@@ -158,12 +153,20 @@ export function Customers() {
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                   <div>
                     <Label htmlFor="cust-kind">Tipo</Label>
-                    <Select id="cust-kind" {...register('kind')}>
-                      <option value="">—</option>
-                      {(kindOptions ?? []).map((k) => (
-                        <option key={k.id} value={k.label}>{k.label}</option>
-                      ))}
-                    </Select>
+                    <Controller
+                      control={control}
+                      name="kind"
+                      render={({ field }) => (
+                        <OptionSelect
+                          id="cust-kind"
+                          kind="CUSTOMER_KIND"
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          placeholder="Tipo de cliente"
+                          emptyLabel="—"
+                        />
+                      )}
+                    />
                   </div>
                   <div>
                     <Label htmlFor="cust-cpf">CPF/CNPJ</Label>

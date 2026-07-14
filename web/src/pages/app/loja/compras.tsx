@@ -22,7 +22,7 @@ import {
   importPurchases,
   receivePurchase,
 } from '@/api/purchases'
-import { fetchProducts } from '@/api/products'
+import { createProduct, fetchProducts } from '@/api/products'
 import { fetchOptions } from '@/api/options'
 import { fetchWallet, withdrawWallet } from '@/api/wallet'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
@@ -38,6 +38,7 @@ import { CurrencyInput } from '@/components/ui/currency-input'
 import { Textarea } from '@/components/ui/textarea'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DatePicker } from '@/components/ui/date-picker'
+import { OptionSelect } from '@/components/ui/option-select'
 import {
   Dialog,
   DialogContent,
@@ -566,6 +567,90 @@ function CreditDialog({
   )
 }
 
+// Modos base de cálculo disponíveis para um formato de compra customizado
+// (meta da UserOption — espelha o enum aceito pela API em /options).
+const PURCHASE_FORMAT_MODES = [
+  { value: 'NORMAL', label: 'Compra normal' },
+  { value: 'PROMO', label: 'Promoção' },
+  { value: 'MILES', label: 'Milhas (acúmulo por real)' },
+  { value: 'CASHBACK', label: 'Cashback (%)' },
+]
+
+// Cadastro rápido de produto sem sair do fluxo da compra — detalhes (tipo,
+// modelo, marca…) podem ser completados depois na aba Produtos.
+function QuickProductDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  onCreated: (productId: string) => void
+}) {
+  const [name, setName] = useState('')
+  const [priceCents, setPriceCents] = useState(0)
+  const [saving, setSaving] = useState(false)
+
+  async function handleCreate() {
+    const trimmed = name.trim()
+    if (!trimmed) return toast.error('Informe o nome do produto.')
+    setSaving(true)
+    try {
+      const product = await createProduct({
+        name: trimmed,
+        suggestedPriceInCents: priceCents || null,
+      })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      onCreated(product.id)
+      onOpenChange(false)
+      setName('')
+      setPriceCents(0)
+      toast.success(`"${trimmed}" cadastrado!`)
+    } catch {
+      toast.error('Não foi possível cadastrar o produto.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm md:max-w-md md:p-6">
+        <DialogHeader>
+          <DialogTitle>Novo produto</DialogTitle>
+        </DialogHeader>
+        <div>
+          <Label htmlFor="qp-name">Nome do produto *</Label>
+          <Input
+            id="qp-name"
+            value={name}
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            placeholder="Ex.: JBL Boombox 4 Branca"
+          />
+        </div>
+        <div>
+          <Label htmlFor="qp-price">Preço de venda sugerido (R$)</Label>
+          <CurrencyInput id="qp-price" valueInCents={priceCents} onChangeCents={setPriceCents} placeholder="Opcional" />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Tipo, modelo, marca e mais detalhes podem ser completados depois na
+          aba Produtos.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button className="flex-1" onClick={handleCreate} loading={saving}>
+            Cadastrar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function NewPurchaseDialog({
   open,
   onOpenChange,
@@ -576,23 +661,14 @@ function NewPurchaseDialog({
   onSaved: () => void
 }) {
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts(), enabled: open })
-  const { data: marketplaces } = useQuery({
-    queryKey: ['options', 'MARKETPLACE'],
-    queryFn: () => fetchOptions('MARKETPLACE'),
-    enabled: open,
-  })
   const { data: formats } = useQuery({
     queryKey: ['options', 'PURCHASE_FORMAT'],
     queryFn: () => fetchOptions('PURCHASE_FORMAT'),
     enabled: open,
   })
-  const { data: payMethods } = useQuery({
-    queryKey: ['options', 'PAYMENT_METHOD'],
-    queryFn: () => fetchOptions('PAYMENT_METHOD'),
-    enabled: open,
-  })
 
   const [productId, setProductId] = useState('')
+  const [newProductOpen, setNewProductOpen] = useState(false)
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [quantity, setQuantity] = useState('1')
   const [unitCents, setUnitCents] = useState(0)
@@ -677,14 +753,27 @@ function NewPurchaseDialog({
 
         <div>
           <Label htmlFor="pur-product">Produto *</Label>
-          <Select id="pur-product" value={productId} onChange={(e) => setProductId(e.target.value)}>
+          <Select
+            id="pur-product"
+            value={productId}
+            onChange={(e) => {
+              if (e.target.value === '__new__') return setNewProductOpen(true)
+              setProductId(e.target.value)
+            }}
+          >
             <option value="">Selecionar…</option>
             {(products ?? []).map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
             ))}
+            <option value="__new__">+ Novo produto…</option>
           </Select>
+          <QuickProductDialog
+            open={newProductOpen}
+            onOpenChange={setNewProductOpen}
+            onCreated={setProductId}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -709,25 +798,26 @@ function NewPurchaseDialog({
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
             <Label htmlFor="pur-marketplace">CIA / loja</Label>
-            <Select id="pur-marketplace" value={marketplace} onChange={(e) => setMarketplace(e.target.value)}>
-              <option value="">Selecionar…</option>
-              {(marketplaces ?? []).map((m) => (
-                <option key={m.id} value={m.label}>
-                  {m.label}
-                </option>
-              ))}
-            </Select>
+            <OptionSelect
+              id="pur-marketplace"
+              kind="MARKETPLACE"
+              value={marketplace}
+              onChange={setMarketplace}
+              placeholder="CIA / loja"
+            />
           </div>
           <div>
             <Label htmlFor="pur-format">Formato</Label>
-            <Select id="pur-format" value={formatOptionId} onChange={(e) => setFormatOptionId(e.target.value)}>
-              <option value="">Normal</option>
-              {(formats ?? []).map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label}
-                </option>
-              ))}
-            </Select>
+            <OptionSelect
+              id="pur-format"
+              kind="PURCHASE_FORMAT"
+              value={formatOptionId}
+              onChange={setFormatOptionId}
+              placeholder="Formato"
+              valueKey="id"
+              emptyLabel="Normal"
+              metaChoices={PURCHASE_FORMAT_MODES}
+            />
           </div>
         </div>
 
@@ -762,14 +852,13 @@ function NewPurchaseDialog({
           </div>
           <div>
             <Label htmlFor="pur-pay">Forma de pagamento</Label>
-            <Select id="pur-pay" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-              <option value="">Selecionar…</option>
-              {(payMethods ?? []).map((m) => (
-                <option key={m.id} value={m.label}>
-                  {m.label}
-                </option>
-              ))}
-            </Select>
+            <OptionSelect
+              id="pur-pay"
+              kind="PAYMENT_METHOD"
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+              placeholder="Forma de pagamento"
+            />
           </div>
           <div className="flex items-end pb-1">
             <label className="flex min-h-[36px] cursor-pointer items-center gap-2 text-sm text-muted-foreground">

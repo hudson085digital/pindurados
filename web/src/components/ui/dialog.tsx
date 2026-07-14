@@ -10,11 +10,21 @@ const DialogClose = DialogPrimitive.Close
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onCloseAutoFocus, ...props }, ref) => (
   <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
     <DialogPrimitive.Content
       ref={ref}
+      onCloseAutoFocus={(event) => {
+        onCloseAutoFocus?.(event)
+        // Dialog aberto a partir de um Select (Radix) pode deixar
+        // pointer-events:none preso no <body>; restaura ao fechar o último.
+        setTimeout(() => {
+          if (!document.querySelector('[role="dialog"][data-state="open"]')) {
+            document.body.style.pointerEvents = ''
+          }
+        }, 0)
+      }}
       className={cn(
         // Desktop-first: o modal ocupa boa parte da tela (md+); passe max-w-sm
         // para diálogos pequenos (ex.: confirmação).

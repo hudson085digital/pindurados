@@ -48,6 +48,71 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+// Cadastro rápido de um nome (tipo/modelo) sem sair do formulário do produto.
+function QuickNameDialog({
+  open,
+  onOpenChange,
+  title,
+  label,
+  placeholder,
+  onCreate,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  title: string
+  label: string
+  placeholder?: string
+  onCreate: (name: string) => Promise<void>
+}) {
+  const [name, setName] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function handleCreate() {
+    const trimmed = name.trim()
+    if (!trimmed) return toast.error('Informe o nome.')
+    setSaving(true)
+    try {
+      await onCreate(trimmed)
+      onOpenChange(false)
+      setName('')
+      toast.success(`"${trimmed}" adicionado!`)
+    } catch {
+      toast.error('Não foi possível adicionar.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm md:max-w-md md:p-6">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div>
+          <Label htmlFor="quick-name">{label}</Label>
+          <Input
+            id="quick-name"
+            value={name}
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            placeholder={placeholder}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button className="flex-1" onClick={handleCreate} loading={saving}>
+            Adicionar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function Produtos() {
   const confirm = useConfirm()
   const [search, setSearch] = useState('')
@@ -263,6 +328,8 @@ function ProductDialog({
   const [minQuantity, setMinQuantity] = useState('')
   const [note, setNote] = useState('')
   const [meta, setMeta] = useState<Record<string, string>>({})
+  const [newTypeOpen, setNewTypeOpen] = useState(false)
+  const [newModelOpen, setNewModelOpen] = useState(false)
 
   const selectedType = types.find((t) => t.id === typeId)
   const models = selectedType?.models ?? []
@@ -354,6 +421,7 @@ function ProductDialog({
               id="prod-type"
               value={typeId}
               onChange={(e) => {
+                if (e.target.value === '__new__') return setNewTypeOpen(true)
                 setTypeId(e.target.value)
                 setModelId('')
               }}
@@ -364,14 +432,31 @@ function ProductDialog({
                   {t.name}
                 </option>
               ))}
+              <option value="__new__">+ Novo tipo…</option>
             </Select>
+            <QuickNameDialog
+              open={newTypeOpen}
+              onOpenChange={setNewTypeOpen}
+              title="Novo tipo de produto"
+              label="Nome do tipo"
+              placeholder="Ex.: Caixa de som"
+              onCreate={async (name) => {
+                const type = await createProductType(name)
+                queryClient.invalidateQueries({ queryKey: ['product-types'] })
+                setTypeId(type.id)
+                setModelId('')
+              }}
+            />
           </div>
           <div>
             <Label htmlFor="prod-model">Modelo</Label>
             <Select
               id="prod-model"
               value={modelId}
-              onChange={(e) => setModelId(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value === '__new__') return setNewModelOpen(true)
+                setModelId(e.target.value)
+              }}
               disabled={!typeId}
             >
               <option value="">{typeId ? 'Selecionar…' : 'Escolha o tipo antes'}</option>
@@ -380,12 +465,20 @@ function ProductDialog({
                   {m.name}
                 </option>
               ))}
+              {typeId && <option value="__new__">+ Novo modelo…</option>}
             </Select>
-            {typeId && models.length === 0 && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Sem modelos neste tipo — cadastre em "Tipos & modelos".
-              </p>
-            )}
+            <QuickNameDialog
+              open={newModelOpen}
+              onOpenChange={setNewModelOpen}
+              title="Novo modelo"
+              label="Nome do modelo"
+              placeholder="Ex.: Boombox 4"
+              onCreate={async (name) => {
+                const model = await createProductModel(typeId, name)
+                queryClient.invalidateQueries({ queryKey: ['product-types'] })
+                setModelId(model.id)
+              }}
+            />
           </div>
           <div>
             <Label htmlFor="prod-brand">Marca</Label>

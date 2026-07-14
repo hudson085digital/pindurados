@@ -15,23 +15,41 @@ import {
   DialogTitle,
 } from './dialog'
 
+export interface MetaChoice {
+  value: string
+  label: string
+}
+
 // Select de lista configurável (UserOption) com "+ Nova…" abrindo um modal
 // próprio para cadastrar a opção (nada de prompt do navegador).
+// - valueKey: 'label' (padrão) usa o texto da opção como valor; 'id' usa o id
+//   (formato de compra e tipo de venda guardam referência por id).
+// - metaChoices: quando presente, o modal pede também o "modo base" da opção
+//   (ex.: formato de compra → NORMAL/MILES/CASHBACK) e envia como meta.
+// - emptyLabel: rótulo da opção vazia (padrão `${placeholder}…`); null = sem
+//   opção vazia (para selects obrigatórios como o tipo de venda).
 export function OptionSelect({
   id,
   kind,
   value,
   onChange,
   placeholder,
+  valueKey = 'label',
+  metaChoices,
+  emptyLabel,
 }: {
   id: string
   kind: UserOptionKind
   value: string
   onChange: (v: string) => void
   placeholder: string
+  valueKey?: 'label' | 'id'
+  metaChoices?: MetaChoice[]
+  emptyLabel?: string | null
 }) {
   const [newOpen, setNewOpen] = useState(false)
   const [label, setLabel] = useState('')
+  const [meta, setMeta] = useState('')
   const [saving, setSaving] = useState(false)
 
   const { data: options } = useQuery({
@@ -42,6 +60,7 @@ export function OptionSelect({
   function handleChange(next: string) {
     if (next === '__new__') {
       setLabel('')
+      setMeta(metaChoices?.[0]?.value ?? '')
       setNewOpen(true)
       return
     }
@@ -51,11 +70,25 @@ export function OptionSelect({
   async function handleCreate() {
     const trimmed = label.trim()
     if (!trimmed) return toast.error('Informe o nome.')
+    // Já existe? Só seleciona — sem duplicar nem quebrar o fluxo.
+    const existing = list.find(
+      (o) => o.label.toLowerCase() === trimmed.toLowerCase(),
+    )
+    if (existing) {
+      onChange(valueKey === 'id' ? existing.id : existing.label)
+      setNewOpen(false)
+      toast.success(`"${existing.label}" já existia — selecionada.`)
+      return
+    }
     setSaving(true)
     try {
-      await createOption({ kind, label: trimmed })
+      const option = await createOption({
+        kind,
+        label: trimmed,
+        meta: metaChoices ? meta || null : undefined,
+      })
       queryClient.invalidateQueries({ queryKey: ['options', kind] })
-      onChange(trimmed)
+      onChange(valueKey === 'id' ? option.id : trimmed)
       setNewOpen(false)
       toast.success(`"${trimmed}" adicionada!`)
     } catch {
@@ -66,17 +99,20 @@ export function OptionSelect({
   }
 
   const list = options ?? []
+  const optionValue = (o: UserOption) => (valueKey === 'id' ? o.id : o.label)
   return (
     <>
       <Select id={id} value={value} onChange={(e) => handleChange(e.target.value)}>
-        <option value="">{placeholder}…</option>
+        {emptyLabel !== null && (
+          <option value="">{emptyLabel ?? `${placeholder}…`}</option>
+        )}
         {list.map((o: UserOption) => (
-          <option key={o.id} value={o.label}>
+          <option key={o.id} value={optionValue(o)}>
             {o.label}
           </option>
         ))}
-        {value && !list.some((o: UserOption) => o.label === value) && (
-          <option value={value}>{value}</option>
+        {value && !list.some((o: UserOption) => optionValue(o) === value) && (
+          <option value={value}>{valueKey === 'id' ? 'Opção removida' : value}</option>
         )}
         <option value="__new__">+ Nova…</option>
       </Select>
@@ -96,6 +132,22 @@ export function OptionSelect({
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             />
           </div>
+          {metaChoices && (
+            <div>
+              <Label htmlFor={`${id}-new-meta`}>Funciona como</Label>
+              <Select
+                id={`${id}-new-meta`}
+                value={meta}
+                onChange={(e) => setMeta(e.target.value)}
+              >
+                {metaChoices.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => setNewOpen(false)}>
               Cancelar
