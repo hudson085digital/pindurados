@@ -9,6 +9,7 @@ import { Customers } from './pages/app/customers'
 import { CustomerDetails } from './pages/app/customer-details'
 import { NewSale } from './pages/app/new-sale'
 import { PixKeys } from './pages/app/pix-keys'
+import { Cadastros } from './pages/app/cadastros'
 import { LojaLayout } from './pages/app/loja'
 import { Compras } from './pages/app/loja/compras'
 import { Estoque } from './pages/app/loja/estoque'
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
           { path: 'produtos', element: <Produtos /> },
         ],
       },
+      { path: '/cadastros', element: <Cadastros /> },
       { path: '/chaves-pix', element: <PixKeys /> },
     ],
   },

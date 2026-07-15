@@ -4,6 +4,7 @@ import {
   Users,
   PlusCircle,
   Store,
+  ClipboardList,
   KeyRound,
   LogOut,
 } from 'lucide-react'
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/clientes', label: 'Clientes', icon: Users, end: false },
   { to: '/nova-venda', label: 'Nova venda', icon: PlusCircle, end: false },
   { to: '/loja', label: 'Loja', icon: Store, end: false },
+  { to: '/cadastros', label: 'Cadastros', icon: ClipboardList, end: false },
   { to: '/chaves-pix', label: 'Pix', icon: KeyRound, end: false },
 ]
 

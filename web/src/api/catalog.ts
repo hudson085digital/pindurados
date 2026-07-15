@@ -12,12 +12,22 @@ export async function createProductType(name: string) {
   return response.data.type
 }
 
+export async function updateProductType(id: string, name: string) {
+  const response = await api.put(`/product-types/${id}`, { name })
+  return response.data.type
+}
+
 export async function deleteProductType(id: string) {
   await api.delete(`/product-types/${id}`)
 }
 
 export async function createProductModel(typeId: string, name: string) {
   const response = await api.post(`/product-types/${typeId}/models`, { name })
+  return response.data.model
+}
+
+export async function updateProductModel(id: string, name: string) {
+  const response = await api.put(`/product-models/${id}`, { name })
   return response.data.model
 }
 
