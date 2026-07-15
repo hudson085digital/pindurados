@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ScrollView, View, Pressable, Alert } from 'react-native'
+import { useEffect, useState } from 'react'
+import { View, Alert } from 'react-native'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   listPixKeys,
@@ -10,13 +10,15 @@ import {
 import { getSettings, updateSettings } from '@/src/data/repositories/settings'
 import { formatPhone } from '@/src/lib/format'
 import { toastSuccess, toastError } from '@/src/lib/toast'
-import type { PixKeyType } from '@/src/data/model'
+import type { PixKeyType, Settings } from '@/src/data/model'
+import { Screen } from '@/src/components/ui/screen'
 import { Card } from '@/src/components/ui/card'
 import { Text, Muted } from '@/src/components/ui/text'
 import { Button } from '@/src/components/ui/button'
 import { Input } from '@/src/components/ui/input'
 import { Label } from '@/src/components/ui/field'
 import { EmptyState } from '@/src/components/ui/empty-state'
+import { TextAction } from '@/src/components/ui/text-action'
 
 const TYPES: { value: PixKeyType; label: string }[] = [
   { value: 'RANDOM', label: 'Aleatória' },
@@ -36,10 +38,6 @@ export default function PixScreen() {
   const [key, setKey] = useState('')
   const [bankName, setBankName] = useState('')
   const [holderName, setHolderName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [phoneDirty, setPhoneDirty] = useState(false)
-
-  if (!phoneDirty && settings?.contactPhone && phone === '') setPhone(settings.contactPhone)
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ['pix-keys'] })
@@ -57,33 +55,16 @@ export default function PixScreen() {
     }
   }
 
-  async function saveContact() {
-    await updateSettings({ contactPhone: phone || null })
-    toastSuccess('Contato atualizado.')
-    setPhoneDirty(false)
-    qc.invalidateQueries({ queryKey: ['settings'] })
-  }
-
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-3 p-4">
-      <Card className="gap-2">
-        <Label>Seu WhatsApp (para cobranças)</Label>
-        <View className="flex-row gap-2">
-          <Input
-            className="flex-1"
-            value={phone}
-            onChangeText={(t) => {
-              setPhone(formatPhone(t))
-              setPhoneDirty(true)
-            }}
-            keyboardType="phone-pad"
-            placeholder="(00) 90000-0000"
-          />
-          <Button title="Salvar" onPress={saveContact} disabled={!phoneDirty} />
-        </View>
-      </Card>
+    <Screen>
+      <SettingsCard settings={settings} onSaved={() => qc.invalidateQueries({ queryKey: ['settings'] })} />
 
-      <Button title={open ? 'Cancelar' : '+ Nova chave Pix'} variant={open ? 'outline' : 'default'} onPress={() => setOpen((v) => !v)} />
+      <Button
+        title={open ? 'Cancelar' : 'Nova chave Pix'}
+        icon={open ? undefined : 'add'}
+        variant={open ? 'outline' : 'default'}
+        onPress={() => setOpen((v) => !v)}
+      />
 
       {open ? (
         <Card className="gap-3">
@@ -129,26 +110,124 @@ export default function PixScreen() {
                 {TYPES.find((t) => t.value === k.type)?.label} · {k.bankName} · {k.holderName}
               </Muted>
             </View>
-            <View className="flex-row gap-3">
+            <View className="flex-row items-center gap-4">
               {!k.isDefault ? (
-                <Pressable onPress={async () => { await setDefaultPixKey(k.id); invalidate() }}>
-                  <Text className="text-[13px] text-primary">padrão</Text>
-                </Pressable>
+                <TextAction
+                  label="Tornar padrão"
+                  tone="primary"
+                  icon="star-outline"
+                  onPress={async () => {
+                    await setDefaultPixKey(k.id)
+                    invalidate()
+                  }}
+                />
               ) : null}
-              <Pressable
+              <TextAction
+                label="Excluir"
+                tone="destructive"
+                icon="trash-outline"
                 onPress={() =>
                   Alert.alert('Excluir', 'Excluir esta chave Pix?', [
                     { text: 'Cancelar', style: 'cancel' },
-                    { text: 'Excluir', style: 'destructive', onPress: async () => { await removePixKey(k.id); invalidate() } },
+                    {
+                      text: 'Excluir',
+                      style: 'destructive',
+                      onPress: async () => {
+                        await removePixKey(k.id)
+                        invalidate()
+                      },
+                    },
                   ])
                 }
-              >
-                <Text className="text-[13px] text-destructive">excluir</Text>
-              </Pressable>
+              />
             </View>
           </Card>
         ))
       )}
-    </ScrollView>
+    </Screen>
+  )
+}
+
+function SettingsCard({
+  settings,
+  onSaved,
+}: {
+  settings: Settings | undefined
+  onSaved: () => void
+}) {
+  const [ownerName, setOwnerName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [lateFee, setLateFee] = useState('25')
+  const [dirty, setDirty] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  // Semeia os campos quando as configurações carregam (sem setState no render).
+  useEffect(() => {
+    if (!settings) return
+    setOwnerName(settings.ownerName ?? '')
+    setPhone(settings.contactPhone ?? '')
+    setLateFee(String(settings.defaultLateFeePercent ?? 25))
+  }, [settings])
+
+  async function save() {
+    const fee = Number(lateFee.replace(',', '.'))
+    if (!Number.isFinite(fee) || fee < 0) return toastError('Informe um % de juros válido.')
+    setSaving(true)
+    try {
+      await updateSettings({
+        ownerName: ownerName || null,
+        contactPhone: phone || null,
+        defaultLateFeePercent: fee,
+      })
+      toastSuccess('Configurações salvas.')
+      setDirty(false)
+      onSaved()
+    } catch {
+      toastError('Não foi possível salvar.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card className="gap-3">
+      <Text className="font-semibold">Configurações</Text>
+      <View>
+        <Label>Seu nome (assina as cobranças)</Label>
+        <Input
+          value={ownerName}
+          onChangeText={(t) => {
+            setOwnerName(t)
+            setDirty(true)
+          }}
+          placeholder="Ex.: Mercado do João"
+        />
+      </View>
+      <View>
+        <Label>Seu WhatsApp (para cobranças)</Label>
+        <Input
+          value={phone}
+          onChangeText={(t) => {
+            setPhone(formatPhone(t))
+            setDirty(true)
+          }}
+          keyboardType="phone-pad"
+          placeholder="(00) 90000-0000"
+        />
+      </View>
+      <View>
+        <Label>Juros de atraso padrão (%)</Label>
+        <Input
+          value={lateFee}
+          onChangeText={(t) => {
+            setLateFee(t)
+            setDirty(true)
+          }}
+          keyboardType="number-pad"
+        />
+        <Muted className="mt-1">Sugerido ao marcar uma parcela como atrasada.</Muted>
+      </View>
+      <Button title="Salvar" onPress={save} loading={saving} disabled={!dirty} />
+    </Card>
   )
 }

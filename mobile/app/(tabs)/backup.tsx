@@ -1,17 +1,21 @@
 import { useState } from 'react'
-import { ScrollView, View, Alert } from 'react-native'
+import { View, Alert } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import * as DocumentPicker from 'expo-document-picker'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { exportBackup, importBackup } from '@/src/data/backup'
 import { getSettings } from '@/src/data/repositories/settings'
 import { formatDate } from '@/src/lib/format'
 import { toastSuccess, toastError } from '@/src/lib/toast'
+import { useColors } from '@/src/lib/theme'
+import { Screen } from '@/src/components/ui/screen'
 import { Card } from '@/src/components/ui/card'
 import { Text, Muted, Heading } from '@/src/components/ui/text'
 import { Button } from '@/src/components/ui/button'
 
 export default function BackupScreen() {
   const qc = useQueryClient()
+  const c = useColors()
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: getSettings })
   const [busy, setBusy] = useState(false)
 
@@ -64,23 +68,37 @@ export default function BackupScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-3 p-4">
+    <Screen>
       <Card className="gap-2">
         <Heading>Backup local</Heading>
-        <Muted>
+        <Muted className="leading-5">
           Seus dados ficam só neste aparelho. Exporte um arquivo de backup (dados + comprovantes) e
           guarde onde quiser — Google Drive, WhatsApp, e-mail. Para recuperar em outro aparelho,
           importe esse arquivo. Nenhuma etapa pede conta Google.
         </Muted>
         {settings?.lastBackupAt ? (
-          <Muted>Último backup: {formatDate(settings.lastBackupAt)}</Muted>
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="checkmark-circle" size={16} color={c.primary} />
+            <Muted>Último backup: {formatDate(settings.lastBackupAt)}</Muted>
+          </View>
         ) : (
-          <Text className="text-[13px] text-destructive">Você ainda não fez backup.</Text>
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="alert-circle" size={16} color={c.destructive} />
+            <Text className="text-[13px] font-medium text-destructive">
+              Você ainda não fez backup.
+            </Text>
+          </View>
         )}
       </Card>
 
-      <Button title="Exportar backup" onPress={handleExport} disabled={busy} />
-      <Button title="Importar backup" variant="outline" onPress={handleImport} disabled={busy} />
-    </ScrollView>
+      <Button title="Exportar backup" icon="cloud-upload-outline" onPress={handleExport} loading={busy} />
+      <Button
+        title="Importar backup"
+        icon="cloud-download-outline"
+        variant="outline"
+        onPress={handleImport}
+        disabled={busy}
+      />
+    </Screen>
   )
 }
