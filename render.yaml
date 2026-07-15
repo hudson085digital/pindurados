@@ -16,7 +16,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: '20'
+        value: '22' # >=22 tem WebSocket nativo, exigido pelo @supabase/realtime-js
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
