@@ -69,7 +69,12 @@ export function DatePicker({
           <PopoverPrimitive.Content
             align="start"
             sideOffset={4}
-            className="z-[60] rounded-lg border bg-card p-3 text-card-foreground shadow-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+            // Dentro de um Dialog modal (Radix) o <body> fica com
+            // pointer-events:none; o conteúdo do popover é portado p/ o body e
+            // herda isso, deixando o calendário inclicável. Reabilita aqui e
+            // evita que o focus-trap do Dialog roube o foco e feche o popover.
+            onOpenAutoFocus={(event) => event.preventDefault()}
+            className="pointer-events-auto z-[60] rounded-lg border bg-card p-3 text-card-foreground shadow-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
           >
             <DayPicker
               mode="single"
