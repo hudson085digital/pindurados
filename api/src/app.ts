@@ -62,7 +62,13 @@ if (usingSupabaseStorage) {
 }
 
 // Health check (público) — usado pelo monitoramento do host.
-app.get('/health', () => ({ status: 'ok' }))
+// Expõe o commit (RENDER_GIT_COMMIT é injetado pelo Render) e o Node em uso,
+// para confirmar qual build está no ar após um deploy.
+app.get('/health', () => ({
+  status: 'ok',
+  commit: process.env.RENDER_GIT_COMMIT ?? null,
+  node: process.version,
+}))
 
 // Rotas
 app.register(publicRoutes)
