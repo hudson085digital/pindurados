@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useSearchParams, Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -7,6 +7,7 @@ import {
   Coins,
   FileUp,
   PackageCheck,
+  Pencil,
   Plus,
   ShoppingCart,
   Trash2,
@@ -21,6 +22,7 @@ import {
   fetchPurchases,
   importPurchases,
   receivePurchase,
+  updatePurchase,
 } from '@/api/purchases'
 import { createProduct, fetchProducts } from '@/api/products'
 import { fetchOptions } from '@/api/options'
@@ -237,6 +239,7 @@ function PurchaseCard({
 }) {
   const [receiveOpen, setReceiveOpen] = useState(false)
   const [creditOpen, setCreditOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   async function handleCancel() {
     const ok = await confirm({
@@ -293,6 +296,20 @@ function PurchaseCard({
             ` · Nubank ${formatCurrency(purchase.finalCostNubankInCents)}`}
         </p>
 
+        {(purchase.productExpectedAt || (hasCredit && purchase.creditExpectedAt)) && (
+          <p className="text-xs text-muted-foreground">
+            {[
+              purchase.productExpectedAt &&
+                `produto previsto p/ ${formatDate(purchase.productExpectedAt)}`,
+              hasCredit &&
+                purchase.creditExpectedAt &&
+                `crédito previsto p/ ${formatDate(purchase.creditExpectedAt)}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-1 text-[11px] font-semibold">
           {purchase.canceled ? (
             <span className="rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">cancelada</span>
@@ -348,6 +365,9 @@ function PurchaseCard({
                 <Coins className="h-4 w-4" /> Creditar
               </Button>
             )}
+            <Button size="sm" variant="ghost" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4" /> Editar
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -371,6 +391,14 @@ function PurchaseCard({
           onOpenChange={setCreditOpen}
           onDone={onChange}
         />
+        {editOpen && (
+          <EditPurchaseDialog
+            purchase={purchase}
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            onSaved={onChange}
+          />
+        )}
       </CardContent>
     </Card>
   )
@@ -914,6 +942,268 @@ function NewPurchaseDialog({
 
         <Button className="w-full" onClick={handleSave} loading={isPending}>
           Registrar compra
+        </Button>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// Edição de compra já registrada. Produto e quantidade não mudam aqui — as
+// unidades de estoque já existem (para isso, cancele e registre de novo).
+function EditPurchaseDialog({
+  purchase,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  purchase: Purchase
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  onSaved: () => void
+}) {
+  const { data: formats } = useQuery({
+    queryKey: ['options', 'PURCHASE_FORMAT'],
+    queryFn: () => fetchOptions('PURCHASE_FORMAT'),
+  })
+
+  const [date, setDate] = useState(purchase.date.slice(0, 10))
+  const [unitCents, setUnitCents] = useState(purchase.unitValueInCents)
+  const [freightCents, setFreightCents] = useState(purchase.freightInCents)
+  const [orderNumber, setOrderNumber] = useState(purchase.orderNumber ?? '')
+  const [account, setAccount] = useState(purchase.account ?? '')
+  const [marketplace, setMarketplace] = useState(purchase.marketplace ?? '')
+  const [formatOptionId, setFormatOptionId] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState(purchase.paymentMethod ?? '')
+  const [accrual, setAccrual] = useState(
+    purchase.accrualPerReal != null ? String(purchase.accrualPerReal) : '',
+  )
+  const [cpmCents, setCpmCents] = useState(purchase.cpmInCents ?? 0)
+  const [cashbackPct, setCashbackPct] = useState(
+    purchase.cashbackPercent != null ? String(purchase.cashbackPercent) : '',
+  )
+  const [nubank, setNubank] = useState(purchase.nubankAdvance)
+  const [productExpected, setProductExpected] = useState(
+    purchase.productExpectedAt?.slice(0, 10) ?? '',
+  )
+  const [creditExpected, setCreditExpected] = useState(
+    purchase.creditExpectedAt?.slice(0, 10) ?? '',
+  )
+  const [note, setNote] = useState(purchase.note ?? '')
+
+  // Pré-seleciona o formato atual assim que as opções carregam.
+  useEffect(() => {
+    if (formatOptionId !== null || !formats) return
+    const match =
+      formats.find((f) => f.label === purchase.formatLabel) ??
+      formats.find(
+        (f) => ((f.meta ?? 'NORMAL') as PurchaseFormat) === purchase.format,
+      )
+    setFormatOptionId(match?.id ?? '')
+  }, [formats, formatOptionId, purchase])
+
+  const formatOption = (formats ?? []).find((f) => f.id === formatOptionId)
+  const format: PurchaseFormat = formatOption
+    ? (((formatOption.meta ?? 'NORMAL') as PurchaseFormat) || 'NORMAL')
+    : formatOptionId === null
+      ? purchase.format
+      : 'NORMAL'
+
+  const preview = useMemo(
+    () =>
+      previewCost({
+        format,
+        quantity: purchase.quantity,
+        unitValueInCents: unitCents,
+        freightInCents: freightCents,
+        accrualPerReal: Number(accrual.replace(',', '.')) || 0,
+        cpmInCents: cpmCents,
+        cashbackPercent: Number(cashbackPct.replace(',', '.')) || 0,
+        nubankAdvance: nubank,
+      }),
+    [format, purchase.quantity, unitCents, freightCents, accrual, cpmCents, cashbackPct, nubank],
+  )
+
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: () =>
+      updatePurchase(purchase.id, {
+        date,
+        unitValueInCents: unitCents,
+        freightInCents: freightCents,
+        orderNumber: orderNumber || null,
+        account: account || null,
+        marketplace: marketplace || null,
+        format,
+        formatLabel: formatOption?.label ?? null,
+        paymentMethod: paymentMethod || null,
+        accrualPerReal: format === 'MILES' ? Number(accrual.replace(',', '.')) || null : null,
+        cpmInCents: format === 'MILES' ? cpmCents || null : null,
+        cashbackPercent: format === 'CASHBACK' ? Number(cashbackPct.replace(',', '.')) || null : null,
+        nubankAdvance: nubank,
+        productExpectedAt: productExpected || null,
+        creditExpectedAt: creditExpected || null,
+        note: note || null,
+      }),
+  })
+
+  async function handleSave() {
+    if (!unitCents) return toast.error('Informe o valor pago por unidade.')
+    try {
+      await mutateAsync()
+      toast.success('Compra atualizada.')
+      onOpenChange(false)
+      onSaved()
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(msg ?? 'Não foi possível atualizar a compra.')
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar compra</DialogTitle>
+        </DialogHeader>
+
+        <p className="text-sm text-muted-foreground">
+          {purchase.quantity > 1 ? `${purchase.quantity}× ` : ''}
+          {purchase.product.name} — produto e quantidade não mudam na edição.
+        </p>
+
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div>
+            <Label htmlFor="edit-pur-date">Data *</Label>
+            <DatePicker id="edit-pur-date" value={date} onChange={setDate} />
+          </div>
+          <div>
+            <Label htmlFor="edit-pur-unit">Valor por unidade (R$) *</Label>
+            <CurrencyInput id="edit-pur-unit" valueInCents={unitCents} onChangeCents={setUnitCents} placeholder="0,00" />
+          </div>
+          <div>
+            <Label htmlFor="edit-pur-freight">Frete (R$)</Label>
+            <CurrencyInput id="edit-pur-freight" valueInCents={freightCents} onChangeCents={setFreightCents} placeholder="0,00" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="edit-pur-marketplace">CIA / loja</Label>
+            <OptionSelect
+              id="edit-pur-marketplace"
+              kind="MARKETPLACE"
+              value={marketplace}
+              onChange={setMarketplace}
+              placeholder="CIA / loja"
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-pur-format">Formato</Label>
+            <OptionSelect
+              id="edit-pur-format"
+              kind="PURCHASE_FORMAT"
+              value={formatOptionId ?? ''}
+              onChange={setFormatOptionId}
+              placeholder="Formato"
+              valueKey="id"
+              emptyLabel="Normal"
+              metaChoices={PURCHASE_FORMAT_MODES}
+            />
+          </div>
+        </div>
+
+        {format === 'MILES' && (
+          <div className="grid grid-cols-2 gap-4 rounded-md border border-primary/20 bg-primary/5 p-4">
+            <div>
+              <Label htmlFor="edit-pur-accrual">Milhas por real</Label>
+              <Input id="edit-pur-accrual" inputMode="decimal" value={accrual} onChange={(e) => setAccrual(e.target.value)} placeholder="Ex.: 6" />
+            </div>
+            <div>
+              <Label htmlFor="edit-pur-cpm">Valor do milheiro (R$)</Label>
+              <CurrencyInput id="edit-pur-cpm" valueInCents={cpmCents} onChangeCents={setCpmCents} placeholder="Ex.: 27,00" />
+            </div>
+          </div>
+        )}
+
+        {format === 'CASHBACK' && (
+          <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+            <Label htmlFor="edit-pur-cb">Cashback (%)</Label>
+            <Input id="edit-pur-cb" inputMode="decimal" value={cashbackPct} onChange={(e) => setCashbackPct(e.target.value)} placeholder="Ex.: 13" />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div>
+            <Label htmlFor="edit-pur-order">Nº do pedido</Label>
+            <Input id="edit-pur-order" value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="edit-pur-account">Conta usada</Label>
+            <Input id="edit-pur-account" value={account} onChange={(e) => setAccount(e.target.value)} placeholder="CPF / e-mail / nome" />
+          </div>
+          <div>
+            <Label htmlFor="edit-pur-pay">Forma de pagamento</Label>
+            <OptionSelect
+              id="edit-pur-pay"
+              kind="PAYMENT_METHOD"
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+              placeholder="Forma de pagamento"
+            />
+          </div>
+          <div className="flex items-end pb-1">
+            <label className="flex min-h-[36px] cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+              <input type="checkbox" className="h-4 w-4 shrink-0" checked={nubank} onChange={(e) => setNubank(e.target.checked)} />
+              Antecipação Nubank (4,5%)
+            </label>
+          </div>
+          <div>
+            <Label htmlFor="edit-pur-prev-prod">Previsão do produto</Label>
+            <DatePicker id="edit-pur-prev-prod" value={productExpected} onChange={setProductExpected} placeholder="Opcional" clearable />
+          </div>
+          {(format === 'MILES' || format === 'CASHBACK') && (
+            <div>
+              <Label htmlFor="edit-pur-prev-credit">Previsão do crédito</Label>
+              <DatePicker id="edit-pur-prev-credit" value={creditExpected} onChange={setCreditExpected} placeholder="Opcional" clearable />
+            </div>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="edit-pur-note">Observação (palavra-chave etc.)</Label>
+          <Textarea id="edit-pur-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+
+        {unitCents > 0 && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <p className="mb-2 text-sm font-semibold text-primary">Prévia do custo</p>
+            <div className="flex justify-between py-0.5 text-sm">
+              <span>Pago com frete</span>
+              <span className="tabular-nums">{formatCurrency(preview.paid)}</span>
+            </div>
+            {preview.credit > 0 && (
+              <div className="flex justify-between py-0.5 text-sm">
+                <span>
+                  {format === 'MILES' ? 'Valor das milhas' : 'Cashback → carteira'}
+                </span>
+                <span className="tabular-nums">
+                  {format === 'MILES' ? '− ' : ''}{formatCurrency(preview.credit)}
+                </span>
+              </div>
+            )}
+            <div className="mt-2 flex justify-between border-t border-dashed border-primary/30 pt-2 font-display text-lg font-bold">
+              <span>Custo final</span>
+              <span className="tabular-nums">{formatCurrency(preview.nubank ?? preview.final)}</span>
+            </div>
+            {preview.nubank != null && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sem antecipação: {formatCurrency(preview.final)}
+              </p>
+            )}
+          </div>
+        )}
+
+        <Button className="w-full" onClick={handleSave} loading={isPending}>
+          Salvar alterações
         </Button>
       </DialogContent>
     </Dialog>
