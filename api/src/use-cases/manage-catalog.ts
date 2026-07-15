@@ -62,6 +62,15 @@ export class ManageCatalogUseCase {
     })
   }
 
+  async renameType(userId: string, id: string, name: string) {
+    await this.ensureTypeOwned(userId, id)
+    return prisma.productType.update({
+      where: { id },
+      data: { name },
+      include: { models: true, fields: true },
+    })
+  }
+
   async deleteType(userId: string, id: string) {
     const type = await prisma.productType.findUnique({
       where: { id },
@@ -81,6 +90,15 @@ export class ManageCatalogUseCase {
   async createModel(userId: string, productTypeId: string, name: string) {
     await this.ensureTypeOwned(userId, productTypeId)
     return prisma.productModel.create({ data: { userId, productTypeId, name } })
+  }
+
+  async renameModel(userId: string, id: string, name: string) {
+    const model = await prisma.productModel.findUnique({ where: { id } })
+    if (!model || model.userId !== userId) {
+      throw new ResourceNotFoundError('Modelo')
+    }
+    // produtos apontam para o modelo por FK — o novo nome vale em todo lugar
+    return prisma.productModel.update({ where: { id }, data: { name } })
   }
 
   async deleteModel(userId: string, id: string) {

@@ -26,6 +26,10 @@ export class PrismaUserOptionsRepository implements UserOptionsRepository {
     return prisma.userOption.count({ where: { userId, kind } })
   }
 
+  async update(id: string, data: { label?: string; meta?: string | null }) {
+    return prisma.userOption.update({ where: { id }, data })
+  }
+
   async delete(id: string) {
     await prisma.userOption.delete({ where: { id } })
   }

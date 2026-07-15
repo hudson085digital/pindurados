@@ -18,6 +18,13 @@ async function createType(request: FastifyRequest, reply: FastifyReply) {
   return reply.status(201).send({ type })
 }
 
+async function renameType(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = idParam.parse(request.params)
+  const { name } = nameBody.parse(request.body)
+  const type = await catalog.renameType(request.user.sub, id, name)
+  return reply.send({ type })
+}
+
 async function deleteType(request: FastifyRequest, reply: FastifyReply) {
   const { id } = idParam.parse(request.params)
   await catalog.deleteType(request.user.sub, id)
@@ -29,6 +36,13 @@ async function createModel(request: FastifyRequest, reply: FastifyReply) {
   const { name } = nameBody.parse(request.body)
   const model = await catalog.createModel(request.user.sub, id, name)
   return reply.status(201).send({ model })
+}
+
+async function renameModel(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = idParam.parse(request.params)
+  const { name } = nameBody.parse(request.body)
+  const model = await catalog.renameModel(request.user.sub, id, name)
+  return reply.send({ model })
 }
 
 async function deleteModel(request: FastifyRequest, reply: FastifyReply) {
@@ -55,8 +69,10 @@ export async function catalogRoutes(app: FastifyInstance) {
 
   app.get('/product-types', listTypes)
   app.post('/product-types', createType)
+  app.put('/product-types/:id', renameType)
   app.delete('/product-types/:id', deleteType)
   app.post('/product-types/:id/models', createModel)
+  app.put('/product-models/:id', renameModel)
   app.delete('/product-models/:id', deleteModel)
   app.post('/product-types/:id/fields', createField)
   app.delete('/product-type-fields/:id', deleteField)

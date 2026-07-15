@@ -47,6 +47,22 @@ async function createOption(request: FastifyRequest, reply: FastifyReply) {
   return reply.status(201).send({ option })
 }
 
+async function updateOption(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
+  const { label, meta } = z
+    .object({
+      label: z.string().trim().min(1).optional(),
+      meta: z.enum(['NORMAL', 'PROMO', 'MILES', 'CASHBACK', 'IMMEDIATE', 'INSTALLMENTS']).nullish(),
+    })
+    .parse(request.body)
+
+  const option = await makeUserOptionsUseCase().update(request.user.sub, id, {
+    label,
+    meta,
+  })
+  return reply.send({ option })
+}
+
 async function deleteOption(request: FastifyRequest, reply: FastifyReply) {
   const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
 
@@ -59,5 +75,6 @@ export async function optionsRoutes(app: FastifyInstance) {
 
   app.get('/options', fetchOptions)
   app.post('/options', createOption)
+  app.put('/options/:id', updateOption)
   app.delete('/options/:id', deleteOption)
 }

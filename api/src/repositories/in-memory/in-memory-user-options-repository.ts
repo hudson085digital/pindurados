@@ -44,6 +44,14 @@ export class InMemoryUserOptionsRepository implements UserOptionsRepository {
     return this.items.filter((o) => o.userId === userId && o.kind === kind).length
   }
 
+  async update(id: string, data: { label?: string; meta?: string | null }) {
+    const option = this.items.find((o) => o.id === id)
+    if (!option) throw new Error('Option not found')
+    if (data.label !== undefined) option.label = data.label
+    if (data.meta !== undefined) option.meta = data.meta
+    return option
+  }
+
   async delete(id: string) {
     this.items = this.items.filter((o) => o.id !== id)
   }

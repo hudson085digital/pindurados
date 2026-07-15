@@ -75,8 +75,20 @@ const DEFAULT_OPTIONS: Record<UserOptionKind, { label: string; meta?: string }[]
 
 const ALL_KINDS = Object.keys(DEFAULT_OPTIONS) as UserOptionKind[]
 
+// Renomear uma opção usada como rótulo em outros registros (ex.: marca nos
+// produtos) propaga o novo nome — injeção mínima para testabilidade.
+export type OptionRelabelCascade = (
+  userId: string,
+  kind: UserOptionKind,
+  from: string,
+  to: string,
+) => Promise<void>
+
 export class ManageUserOptionsUseCase {
-  constructor(private userOptionsRepository: UserOptionsRepository) {}
+  constructor(
+    private userOptionsRepository: UserOptionsRepository,
+    private relabelCascade?: OptionRelabelCascade,
+  ) {}
 
   async list(userId: string, kind?: UserOptionKind): Promise<UserOption[]> {
     const kinds: UserOptionKind[] = kind ? [kind] : ALL_KINDS
@@ -108,6 +120,29 @@ export class ManageUserOptionsUseCase {
       label,
       meta: meta ?? null,
     })
+  }
+
+  async update(
+    userId: string,
+    id: string,
+    data: { label?: string; meta?: string | null },
+  ) {
+    const option = await this.userOptionsRepository.findById(id)
+    if (!option || option.userId !== userId) {
+      throw new ResourceNotFoundError('Opção')
+    }
+
+    const updated = await this.userOptionsRepository.update(id, data)
+
+    if (
+      data.label !== undefined &&
+      data.label !== option.label &&
+      this.relabelCascade
+    ) {
+      await this.relabelCascade(userId, option.kind, option.label, data.label)
+    }
+
+    return updated
   }
 
   async delete(userId: string, id: string) {
